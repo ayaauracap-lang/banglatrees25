@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BanglaTrees · 25 Crore Monitor</title>
+<meta name="theme-color" content="#040d08">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BanglaTrees">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;0,900;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#040d08;--bg2:#071209;--bg3:#0c1e10;
+  --green:#1a6b35;--lime:#52c46a;--acid:#a8f55e;--gold:#f5c842;
+  --white:#edf2e8;--muted:rgba(237,242,232,0.42);
+  --border:rgba(82,196,106,0.14);--card:rgba(255,255,255,0.035);
+  --red:#ff5252;--orange:#ff9800;--blue:#4fc3f7;
+  --mono:'JetBrains Mono',monospace;--sans:'Space Grotesk',sans-serif;--display:'Fraunces',serif;
+  --nav-h:64px;--status-h:48px;
+}
+html,body{height:100%;background:#020a04;color:var(--white);font-family:var(--sans)}
+.app-wrapper{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:100%;background:var(--bg);overflow:hidden}
+/* STATUS BAR */
+.status-bar{position:absolute;top:0;left:0;right:0;height:var(--status-h);background:rgba(4,13,8,0.98);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);z-index:300}
+.sb-brand{display:flex;align-items:center;gap:8px}
+.sb-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--green),var(--lime));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.sb-name{font-family:var(--display);font-weight:700;font-size:1rem;color:var(--acid);letter-spacing:-0.02em}
+.sb-right{display:flex;align-items:center;gap:10px}
+.live-pill{display:flex;align-items:center;gap:5px;background:rgba(168,245,94,0.1);border:1px solid rgba(168,245,94,0.25);border-radius:20px;padding:3px 9px}
+.live-dot{width:5px;height:5px;background:var(--acid);border-radius:50%;animation:pulse 1.5s infinite}
+.live-txt{font-family:var(--mono);font-size:0.52rem;color:var(--acid);letter-spacing:0.08em}
+.sb-time{font-family:var(--mono);font-size:0.55rem;color:var(--muted)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.5)}}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* SCROLL + PAGES */
+.app-scroll{position:absolute;top:var(--status-h);bottom:var(--nav-h);left:0;right:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.app-scroll::-webkit-scrollbar{display:none}
+.page{display:none;padding:12px 12px 16px;animation:fadeIn .3s ease}
+.page.active{display:block}
+/* MAP page fills full area */
+#page-map.active{padding:0;height:100%;overflow:hidden}
+/* BOTTOM NAV */
+.bottom-nav{position:absolute;bottom:0;left:0;right:0;height:var(--nav-h);background:rgba(4,13,8,0.98);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(6,1fr);z-index:9999}
+.nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all 0.2s;background:transparent;border:none;color:var(--muted);font-family:var(--mono);font-size:0.38rem;letter-spacing:0.04em;text-transform:uppercase;position:relative;padding:0 2px}
+.nav-item.active{color:var(--acid)}
+.nav-item.active::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:18px;height:2px;background:var(--acid);border-radius:2px}
+.nav-icon{font-size:1rem;line-height:1}
+/* SHARED */
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px}
+.card+.card{margin-top:8px}
+.section-label{font-family:var(--mono);font-size:0.52rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--lime);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.prog-wrap{height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;border-radius:3px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+/* HOME */
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.hero-stat{background:linear-gradient(135deg,rgba(26,107,53,0.35),rgba(4,13,8,0.9));border:1px solid rgba(82,196,106,0.2);border-radius:12px;padding:14px 12px;position:relative;overflow:hidden}
+.hero-stat::before{content:'';position:absolute;top:-15px;right:-15px;width:50px;height:50px;background:radial-gradient(circle,rgba(168,245,94,0.12),transparent 70%);border-radius:50%}
+.hs-val{font-family:var(--display);font-size:1.55rem;font-weight:900;color:var(--acid);line-height:1;letter-spacing:-0.03em}
+.hs-label{font-family:var(--mono);font-size:0.5rem;color:var(--muted);letter-spacing:0.1em;margin-top:3px;text-transform:uppercase}
+.hs-sub{font-size:0.62rem;color:var(--lime);margin-top:4px}
+.ndc-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.ndc-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px;text-align:center}
+.ndc-val{font-family:var(--display);font-size:1.3rem;font-weight:900;letter-spacing:-0.03em}
+.ndc-lbl{font-family:var(--mono);font-size:0.5rem;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-top:2px}
+.co2-chart{display:flex;align-items:flex-end;gap:3px;height:60px;margin-top:8px;margin-bottom:4px}
+.co2-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.co2-bar-actual{background:linear-gradient(180deg,var(--acid),var(--lime));border-radius:2px 2px 0 0;width:100%;min-height:2px}
+.co2-bar-target{background:rgba(82,196,106,0.1);border:1px dashed rgba(82,196,106,0.3);border-radius:2px 2px 0 0;width:100%;min-height:2px}
+.co2-month{font-family:var(--mono);font-size:0.42rem;color:var(--muted)}
+/* MAP PAGE */
+.map-container{position:relative;background:linear-gradient(135deg,#071a0c,#040d08);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px}
+.map-tabs{display:flex;gap:4px;padding:8px 8px 0;overflow-x:auto;scrollbar-width:none}
+.map-tabs::-webkit-scrollbar{display:none}
+.map-tab{flex-shrink:0;background:var(--card);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:0.5rem;padding:5px 10px;border-radius:5px;cursor:pointer;transition:all 0.2s;letter-spacing:0.05em;white-space:nowrap}
+.map-tab.active{background:rgba(82,196,106,0.15);color:var(--acid);border-color:var(--lime)}
+#leaflet-map{width:100%;height:260px}
+#page-map{position:relative!important;padding:0!important}
+#page-map #leaflet-map{position:absolute!important;top:0!important;left:0!important;right:0!important;bottom:0!important;height:100%!important;width:100%!important}
+.map-caption{font-family:var(--mono);font-size:0.5rem;color:var(--muted);padding:6px 10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.map-breadcrumb{display:flex;align-items:center;gap:5px;padding:5px 10px;background:rgba(168,245,94,0.04);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:0.48rem;flex-wrap:wrap}
+.bc-sep{color:var(--border)}
+.bc-active{color:var(--acid)}
+.bc-back{background:rgba(82,196,106,0.1);border:1px solid rgba(82,196,106,0.25);color:var(--lime);font-family:var(--mono);font-size:0.48rem;padding:3px 8px;border-radius:4px;cursor:pointer;margin-left:auto;display:none}
+.bc-back.show{display:block}
+/* DISTRICT LIST */
+.div-list{display:flex;flex-direction:column;gap:5px}
+.div-row{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 11px;display:flex;align-items:center;gap:9px;cursor:pointer;transition:all 0.2s}
+.div-row:hover,.div-row:active{border-color:var(--lime);background:rgba(26,107,53,0.15)}
+.dr-color{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.dr-info{flex:1}
+.dr-name{font-family:var(--sans);font-weight:600;font-size:0.82rem}
+.dr-meta{font-family:var(--mono);font-size:0.5rem;color:var(--muted);margin-top:1px}
+.dr-bar{height:2px;background:rgba(255,255,255,0.05);border-radius:1px;margin-top:4px;overflow:hidden}
+.dr-bar-fill{height:100%;border-radius:1px}
+.dr-trees{font-family:var(--mono);font-size:0.68rem;color:var(--acid);white-space:nowrap}
+/* UPAZILA PANEL */
+.uz-header{display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(168,245,94,0.06);border-radius:8px;margin-bottom:8px;cursor:pointer;border:1px solid var(--border)}
+.uz-back-btn{background:rgba(82,196,106,0.1);border:1px solid rgba(82,196,106,0.25);color:var(--lime);font-size:0.55rem;font-family:var(--mono);padding:4px 9px;border-radius:4px;white-space:nowrap}
+.uz-title{font-weight:700;font-size:0.9rem;color:var(--acid);flex:1}
+.uz-subtitle{font-family:var(--mono);font-size:0.46rem;color:var(--muted);margin-top:1px}
+.uz-cards{display:flex;flex-direction:column;gap:6px}
+.uz-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px;transition:all .2s}
+.uz-card:hover{border-color:rgba(82,196,106,0.3)}
+.uz-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.uz-name{font-weight:600;font-size:0.82rem}
+.uz-ndvi-badge{font-family:var(--mono);font-size:0.5rem;padding:3px 8px;border-radius:4px}
+/* MANAGEMENT PROGRESS */
+.mgmt-progress{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.mgmt-title{font-family:var(--mono);font-size:0.48rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--lime);margin-bottom:7px}
+.mp-item{margin-bottom:6px}
+.mp-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.mp-label{font-size:0.62rem;color:var(--muted)}
+.mp-pct{font-family:var(--mono);font-size:0.55rem;color:var(--white)}
+.mp-track{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
+.mp-fill{height:100%;border-radius:2px;transition:width 1s .1s}
+.mp-fill.prep{background:linear-gradient(90deg,#1a6b35,#52c46a)}
+.mp-fill.plant{background:linear-gradient(90deg,#0e7490,#22d3ee)}
+.mp-fill.monitor{background:linear-gradient(90deg,#92400e,#f59e0b)}
+.mp-fill.sustain{background:linear-gradient(90deg,#6d28d9,#a78bfa)}
+.mgmt-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.mgmt-badge{font-family:var(--mono);font-size:0.46rem;padding:2px 7px;border-radius:3px;letter-spacing:0.04em}
+.badge-done{background:rgba(82,196,106,0.12);color:var(--lime);border:1px solid rgba(82,196,106,0.25)}
+.badge-active{background:rgba(34,211,238,0.1);color:#22d3ee;border:1px solid rgba(34,211,238,0.25)}
+.badge-pending{background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid var(--border)}
+/* NDVI RANKING */
+.ndvi-legend-bar{height:8px;border-radius:4px;background:linear-gradient(90deg,#dc2626,#f59e0b,#eab308,#22c55e,#15803d)}
+.ndvi-legend-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.44rem;color:var(--muted);margin-top:3px}
+.rank-list{display:flex;flex-direction:column;gap:5px}
+.rank-item{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px 11px;display:flex;align-items:center;gap:9px;transition:all .2s}
+.rank-item:hover{border-color:rgba(82,196,106,0.3)}
+.rank-num{font-family:var(--display);font-size:1.1rem;font-weight:900;color:var(--muted);min-width:22px;text-align:center;line-height:1}
+.rank-num.gold{color:#f5c842}
+.rank-num.silver{color:#9ca3af}
+.rank-num.bronze{color:#cd7c2f}
+.rank-info{flex:1;min-width:0}
+.rank-name{font-weight:600;font-size:0.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-div{font-family:var(--mono);font-size:0.46rem;color:var(--muted);margin-top:1px}
+.rank-bar-wrap{display:flex;align-items:center;gap:5px;margin-top:4px}
+.rank-bar-track{flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
+.rank-bar-fill{height:100%;border-radius:2px}
+.rank-ndvi{font-family:var(--mono);font-size:0.58rem;min-width:34px;text-align:right}
+.rank-health{font-family:var(--mono);font-size:0.44rem;padding:3px 7px;border-radius:3px;white-space:nowrap}
+.h-ex{background:rgba(21,128,61,0.2);color:#4ade80;border:1px solid rgba(74,222,128,0.18)}
+.h-gd{background:rgba(22,163,74,0.15);color:#86efac;border:1px solid rgba(134,239,172,0.18)}
+.h-mod{background:rgba(202,138,4,0.15);color:#fde047;border:1px solid rgba(253,224,71,0.18)}
+.h-str{background:rgba(234,88,12,0.15);color:#fdba74;border:1px solid rgba(253,186,116,0.18)}
+.h-crit{background:rgba(185,28,28,0.2);color:#fca5a5;border:1px solid rgba(252,165,165,0.22)}
+.rank-trend{font-family:var(--mono);font-size:0.48rem}
+.t-up{color:var(--acid)}
+.t-dn{color:var(--red)}
+.t-flat{color:var(--muted)}
+/* ALERT BANNERS */
+.alert-banner{background:rgba(255,82,82,0.08);border:1px solid rgba(255,82,82,0.25);border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.alert-banner.warn{background:rgba(255,152,0,0.08);border-color:rgba(255,152,0,0.25)}
+.alert-banner.ok{background:rgba(82,196,106,0.08);border-color:rgba(82,196,106,0.25)}
+.ab-icon{font-size:1rem;flex-shrink:0}
+.ab-text{font-size:0.68rem;line-height:1.4}
+.ab-title{font-weight:600;color:var(--white);margin-bottom:1px}
+.ab-sub{color:var(--muted)}
+/* CARBON ENGINE */
+.formula-box{background:rgba(0,0,0,0.3);border:1px solid rgba(168,245,94,0.2);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:0.56rem;color:var(--acid);line-height:1.9;margin-bottom:10px}
+.formula-comment{color:var(--muted)}
+.calc-field{margin-bottom:8px}
+.calc-label{font-family:var(--mono);font-size:0.5rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px}
+.calc-select,.calc-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--white);font-family:var(--mono);font-size:0.7rem;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.calc-select:focus,.calc-input:focus{border-color:var(--lime)}
+.calc-select option{background:#040d08;color:var(--white)}
+.calc-btn{width:100%;background:linear-gradient(135deg,var(--green),var(--lime));border:none;border-radius:8px;padding:11px;color:#040d08;font-family:var(--mono);font-size:0.65rem;font-weight:600;letter-spacing:0.08em;cursor:pointer;margin-top:4px;transition:all .2s}
+.calc-btn:active{transform:scale(0.98)}
+.result-card{background:linear-gradient(135deg,rgba(26,107,53,0.25),rgba(4,13,8,.9));border:1px solid rgba(168,245,94,0.3);border-radius:10px;padding:14px;margin-top:10px;display:none;animation:fadeIn .4s ease}
+.result-card.show{display:block}
+.result-main{font-family:var(--display);font-size:1.8rem;font-weight:900;color:var(--acid);letter-spacing:-0.03em;line-height:1}
+.result-unit{font-family:var(--mono);font-size:0.6rem;color:var(--lime);margin-top:2px}
+.result-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}
+.result-mini{background:rgba(255,255,255,0.04);border-radius:6px;padding:8px;text-align:center}
+.result-mini-val{font-family:var(--mono);font-size:0.72rem;color:var(--acid);font-weight:600}
+.result-mini-lbl{font-family:var(--mono);font-size:0.43rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px}
+/* SPECIES TABLE */
+.species-table{width:100%;border-collapse:collapse}
+.species-table th{font-family:var(--mono);font-size:0.44rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--border);text-align:left}
+.species-table td{font-size:0.65rem;padding:8px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.species-table tr:hover td{background:rgba(82,196,106,0.04)}
+.sp-name{font-weight:600;font-size:0.68rem}
+.sp-sci{font-style:italic;font-size:0.54rem;color:var(--muted)}
+.sp-bar{display:flex;align-items:center;gap:5px}
+.sp-bar-fill{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--green),var(--acid))}
+/* ACC TABLE */
+.acc-table{width:100%;border-collapse:collapse}
+.acc-table th{font-family:var(--mono);font-size:0.42rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding:5px 6px;border-bottom:1px solid var(--border);text-align:left}
+.acc-table td{font-size:0.6rem;padding:7px 6px;border-bottom:1px solid rgba(255,255,255,0.03);font-family:var(--mono)}
+.acc-table tr:hover td{background:rgba(82,196,106,0.04)}
+/* IOT */
+.iot-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.iot-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
+.iot-val{font-family:var(--display);font-size:1.2rem;font-weight:700;line-height:1}
+.iot-unit{font-family:var(--mono);font-size:0.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em}
+.iot-trend{font-family:var(--mono);font-size:0.52rem;margin-top:3px}
+.iot-phase{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:5px}
+.iot-phase-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.iot-phase-name{font-family:var(--mono);font-size:0.55rem;color:var(--acid);letter-spacing:0.06em}
+.iot-phase-nodes{font-family:var(--mono);font-size:0.55rem;color:var(--muted)}
+.iot-phase-desc{font-size:0.62rem;color:var(--muted);margin-bottom:5px}
+.sensor-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.sensor-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sensor-name{font-size:0.7rem;flex:1}
+.sensor-val{font-family:var(--mono);font-size:0.65rem;color:var(--acid)}
+.sensor-status{font-family:var(--mono);font-size:0.48rem;padding:2px 6px;border-radius:3px}
+.status-online{background:rgba(82,196,106,0.12);color:var(--lime)}
+.status-offline{background:rgba(255,82,82,0.12);color:var(--red)}
+.status-warn{background:rgba(255,152,0,0.12);color:var(--orange)}
+/* SPECIES PAGE */
+.sp-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:7px}
+.spc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.spc-name{font-family:var(--sans);font-weight:600;font-size:0.9rem}
+.spc-sci{font-style:italic;font-size:0.62rem;color:var(--muted)}
+.spc-badge{background:linear-gradient(135deg,var(--green),#0d2e17);border:1px solid var(--lime);color:var(--acid);font-family:var(--mono);font-size:0.6rem;padding:3px 8px;border-radius:4px;white-space:nowrap}
+.spc-zones{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px}
+.spc-zone{background:rgba(82,196,106,0.08);color:rgba(82,196,106,0.7);font-family:var(--mono);font-size:0.5rem;padding:2px 6px;border-radius:3px;border:1px solid rgba(82,196,106,0.15)}
+.spc-bar-wrap{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
+.spc-bar{height:100%;border-radius:2px}
+.spc-why{font-size:0.66rem;color:var(--muted);line-height:1.45;margin-top:5px}
+/* AI CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - var(--status-h) - var(--nav-h) - 100px)}
+.chat-msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:8px;scrollbar-width:none}
+.chat-msgs::-webkit-scrollbar{display:none}
+.msg-user{background:rgba(168,245,94,0.08);border:1px solid rgba(168,245,94,0.15);border-radius:10px 10px 2px 10px;padding:9px 11px;font-size:0.78rem;align-self:flex-end;max-width:85%}
+.msg-ai{background:var(--card);border:1px solid var(--border);border-radius:2px 10px 10px 10px;padding:9px 11px;font-size:0.75rem;align-self:flex-start;max-width:90%;line-height:1.55}
+.msg-ai-label{font-family:var(--mono);font-size:0.48rem;color:var(--lime);letter-spacing:0.15em;margin-bottom:5px;text-transform:uppercase}
+.typing{display:flex;gap:4px;align-items:center;padding:4px 0}
+.typing span{width:5px;height:5px;background:var(--lime);border-radius:50%;animation:bounce 1.2s infinite}
+.typing span:nth-child(2){animation-delay:0.2s}
+.typing span:nth-child(3){animation-delay:0.4s}
+.chat-input-row{display:flex;gap:6px;padding-top:8px;border-top:1px solid var(--border)}
+.chat-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--white);font-family:var(--sans);font-size:0.78rem;outline:none;transition:border-color .2s}
+.chat-input:focus{border-color:var(--lime)}
+.chat-send{background:linear-gradient(135deg,var(--green),var(--lime));border:none;border-radius:8px;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.quick-btns{display:flex;gap:4px;margin-bottom:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.quick-btns::-webkit-scrollbar{display:none}
+.qbtn{flex-shrink:0;background:var(--card);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:0.5rem;padding:5px 9px;border-radius:4px;cursor:pointer;transition:all .2s;letter-spacing:0.04em}
+.qbtn:hover{border-color:var(--lime);color:var(--acid)}
+@media(min-width:390px){.hs-val{font-size:1.7rem}}
+/* Leaflet overrides */
+.leaflet-tooltip{background:rgba(4,13,8,.92)!important;border:1px solid rgba(82,196,106,.35)!important;color:#a8f55e!important;font-family:'JetBrains Mono',monospace!important;font-size:0.58rem!important;padding:4px 8px!important;box-shadow:none!important;border-radius:5px!important}
+.leaflet-container{background:#1a1a2e!important}
+.leaflet-tile{filter:none!important}
+.leaflet-tile-loaded{opacity:1!important}
+.leaflet-control-zoom a{background:rgba(4,13,8,.9)!important;border:1px solid rgba(82,196,106,.25)!important;color:#a8f55e!important}
+/* DARK POPUP */
+.bt-popup .leaflet-popup-content-wrapper{background:rgba(7,18,9,.97)!important;border:1px solid rgba(82,196,106,.3)!important;border-radius:10px!important;box-shadow:0 8px 40px rgba(0,0,0,.8),0 0 20px rgba(82,196,106,.1)!important;color:#edf2e8!important;padding:0!important}
+.bt-popup .leaflet-popup-content{margin:14px 14px!important;color:#edf2e8!important}
+.bt-popup .leaflet-popup-tip-container .leaflet-popup-tip{background:rgba(7,18,9,.97)!important}
+.bt-popup .leaflet-popup-close-button{color:rgba(82,196,106,.5)!important;font-size:16px!important;top:8px!important;right:10px!important}
+.bt-popup .leaflet-popup-close-button:hover{color:#a8f55e!important}
+/* upazila row hover */
+.bt-popup tr:hover td{background:rgba(82,196,106,.07)!important}
+.bt-tt.leaflet-tooltip{background:rgba(4,13,8,.95)!important;border:1px solid rgba(82,196,106,.4)!important;color:#a8f55e!important;font-family:'JetBrains Mono',monospace!important;font-size:0.52rem!important;padding:3px 8px!important;border-radius:4px!important;box-shadow:none!important}
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="sb-brand">
+    <div class="sb-icon">🌿</div>
+    <span class="sb-name">BanglaTrees</span>
+  </div>
+  <div class="sb-right">
+    <div class="live-pill"><div class="live-dot"></div><span class="live-txt">LIVE</span></div>
+    <span class="sb-time" id="sbTime">--:--</span>
+  </div>
+</div>
+
+<div class="app-scroll" id="appScroll">
+
+<!-- ═══ HOME ═══ -->
+<div class="page active" id="page-home">
+  <div class="section-label">National Dashboard · March 2026</div>
+  <div class="hero-grid">
+    <div class="hero-stat">
+      <div class="hs-val">187.4M</div>
+      <div class="hs-label">Trees Planted</div>
+      <div class="hs-sub">74.9% of 250M target</div>
+      <div class="prog-wrap"><div class="prog-fill" style="width:74.9%;background:linear-gradient(90deg,var(--green),var(--acid))"></div></div>
+    </div>
+    <div class="hero-stat">
+      <div class="hs-val">142.9M</div>
+      <div class="hs-label">Surviving</div>
+      <div class="hs-sub">76% survival rate</div>
+      <div class="prog-wrap"><div class="prog-fill" style="width:76%;background:linear-gradient(90deg,var(--lime),var(--acid))"></div></div>
+    </div>
+    <div class="hero-stat">
+      <div class="hs-val">12.8 Mt</div>
+      <div class="hs-label">CO₂ Sequestered</div>
+      <div class="hs-sub">vs 13.5 Mt target</div>
+      <div class="prog-wrap"><div class="prog-fill" style="width:94.8%;background:linear-gradient(90deg,var(--blue),var(--lime))"></div></div>
+    </div>
+    <div class="hero-stat">
+      <div class="hs-val">$52M</div>
+      <div class="hs-label">Carbon Revenue</div>
+      <div class="hs-sub">Verra/GS verified</div>
+      <div class="prog-wrap"><div class="prog-fill" style="width:52%;background:linear-gradient(90deg,var(--gold),var(--acid))"></div></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:8px">
+    <div class="section-label">NDC 3.0 Progress · UNFCCC</div>
+    <div class="ndc-row">
+      <div class="ndc-card"><div class="ndc-val" style="color:var(--lime)">28%</div><div class="ndc-lbl">AFOLU Target</div></div>
+      <div class="ndc-card"><div class="ndc-val" style="color:var(--acid)">42%</div><div class="ndc-lbl">Unconditional</div></div>
+      <div class="ndc-card"><div class="ndc-val" style="color:var(--blue)">15%</div><div class="ndc-lbl">Conditional</div></div>
+      <div class="ndc-card"><div class="ndc-val" style="color:var(--gold)">35%</div><div class="ndc-lbl">Carbon $</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:8px">
+    <div class="section-label">CO₂ Sequestration · Monthly Mt</div>
+    <div class="co2-chart" id="co2Chart"></div>
+    <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.45rem;color:var(--muted);margin-top:2px">
+      <span>■ Actual</span><span style="color:rgba(82,196,106,0.4)">■ Target</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:8px">
+    <div class="section-label">CO₂ by Division · Mt Year 3</div>
+    <div style="display:flex;flex-direction:column;gap:5px" id="divCO2Bars"></div>
+    <div style="font-family:var(--mono);font-size:0.48rem;color:var(--muted);margin-top:8px;padding-top:6px;border-top:1px solid var(--border)">30-yr Revenue @$50/t: $3.75B · Verra VCS + Gold Standard</div>
+  </div>
+
+  <div class="card" style="margin-bottom:8px">
+    <div class="section-label">Carbon Credit Revenue · $M @$30/tCO₂</div>
+    <div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px">Y1: $0M → Y5: $52M · <span style="color:var(--acid)">Target Y5: $52M ✅</span></div>
+    <div style="display:flex;align-items:flex-end;gap:4px;height:50px">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="height:4px;width:100%;background:rgba(168,245,94,0.15);border-radius:2px 2px 0 0"></div><span style="font-family:var(--mono);font-size:0.4rem;color:var(--muted)">Y1</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="height:18px;width:100%;background:linear-gradient(180deg,var(--acid),var(--lime));border-radius:2px 2px 0 0"></div><span style="font-family:var(--mono);font-size:0.4rem;color:var(--muted)">Y2</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="height:28px;width:100%;background:linear-gradient(180deg,var(--acid),var(--lime));border-radius:2px 2px 0 0"></div><span style="font-family:var(--mono);font-size:0.4rem;color:var(--muted)">Y3</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="height:38px;width:100%;background:linear-gradient(180deg,var(--acid),var(--lime));border-radius:2px 2px 0 0"></div><span style="font-family:var(--mono);font-size:0.4rem;color:var(--muted)">Y4</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="height:50px;width:100%;background:linear-gradient(180deg,var(--gold),var(--acid));border-radius:2px 2px 0 0;box-shadow:0 0 8px rgba(245,200,66,0.4)"></div><span style="font-family:var(--mono);font-size:0.4rem;color:var(--acid)">Y5✅</span></div>
+    </div>
+  </div>
+
+
+</div>
+
+<!-- ═══ MAP — FULLSCREEN SATELLITE + ONE-CLICK POPUP ═══ -->
+<div class="page" id="page-map" style="padding:0;overflow:hidden">
+
+  <!-- FULLSCREEN MAP fills entire page area -->
+  <div id="leaflet-map" style="position:absolute;top:0;left:0;right:0;bottom:0"></div>
+
+  <!-- Hidden data containers -->
+  <div id="divisionList" style="display:none"></div>
+  <div id="ndviRankList" style="display:none"></div>
+
+  <!-- Layer switcher — 5 tabs in 2 rows -->
+  <div style="position:absolute;top:8px;left:8px;right:8px;z-index:800;display:flex;flex-direction:column;gap:4px">
+    <div style="display:flex;gap:4px">
+      <button onclick="setMapLayer('ndvi',this)"   style="flex:1;background:rgba(4,13,8,.9);border:1px solid #a8f55e;color:#a8f55e;font-family:'JetBrains Mono',monospace;font-size:0.44rem;padding:6px 3px;border-radius:6px;cursor:pointer" id="ml-ndvi">🌿 NDVI</button>
+      <button onclick="setMapLayer('carbon',this)" style="flex:1;background:rgba(4,13,8,.82);border:1px solid rgba(82,196,106,.3);color:rgba(237,242,232,.6);font-family:'JetBrains Mono',monospace;font-size:0.44rem;padding:6px 3px;border-radius:6px;cursor:pointer" id="ml-carbon">💨 CO₂</button>
+      <button onclick="setMapLayer('risk',this)"   style="flex:1;background:rgba(4,13,8,.82);border:1px solid rgba(82,196,106,.3);color:rgba(237,242,232,.6);font-family:'JetBrains Mono',monospace;font-size:0.44rem;padding:6px 3px;border-radius:6px;cursor:pointer" id="ml-risk">⚠️ Risk</button>
+    </div>
+    <div style="display:flex;gap:4px">
+      <button onclick="setMapLayer('mgmt',this)"   style="flex:1;background:rgba(4,13,8,.82);border:1px solid rgba(82,196,106,.3);color:rgba(237,242,232,.6);font-family:'JetBrains Mono',monospace;font-size:0.44rem;padding:6px 3px;border-radius:6px;cursor:pointer" id="ml-mgmt">📊 Progress</button>
+      <button onclick="setMapLayer('pure',this)"   style="flex:1;background:rgba(4,13,8,.82);border:1px solid rgba(82,196,106,.3);color:rgba(237,242,232,.6);font-family:'JetBrains Mono',monospace;font-size:0.44rem;padding:6px 3px;border-radius:6px;cursor:pointer" id="ml-pure">🛰 Satellite</button>
+    </div>
+  </div>
+
+  <!-- NDVI/Progress Legend — bottom left -->
+  <div id="ndviLegendOverlay" style="position:absolute;bottom:10px;left:8px;z-index:800;background:rgba(4,13,8,.86);border:1px solid rgba(82,196,106,.25);border-radius:7px;padding:6px 9px;pointer-events:none">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:#52c46a;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px" id="legendTitle">NDVI Health</div>
+    <div id="legendBar" style="width:100px;height:5px;border-radius:3px;background:linear-gradient(90deg,#ef4444,#f97316,#eab308,#22c55e,#15803d);margin-bottom:3px"></div>
+    <div id="legendLabels" style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:0.34rem;color:rgba(237,242,232,.4)"><span>Critical</span><span>Good</span><span>Best</span></div>
+  </div>
+
+  <!-- Live timestamp — bottom right -->
+  <div style="position:absolute;bottom:10px;right:8px;z-index:800;background:rgba(4,13,8,.86);border:1px solid rgba(82,196,106,.22);border-radius:6px;padding:4px 8px;pointer-events:none">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:#a8f55e" id="mapUpdated">--:--</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.34rem;color:rgba(237,242,232,.35);margin-top:1px" id="mapLayerLabel">Tap division</div>
+  </div>
+
+</div>
+
+<!-- ═══ CARBON ENGINE ═══ -->
+<div class="page" id="page-carbon">
+  <div class="section-label">Carbon Sequestration Engine · IPCC Tier 2</div>
+  <div class="card" style="margin-bottom:8px">
+    <div class="section-label">IPCC Tier 2 Formula</div>
+    <div class="formula-box">
+      <span class="formula-comment">// CO₂ Sequestration (IPCC Tier 2)</span><br>
+      CO₂ = Biomass × 0.725 × 0.5 × 3.6663<br>
+      <span class="formula-comment">          ↑ Dry Mass  ↑ C-Frac  ↑ 44/12 ratio</span><br><br>
+      <span class="formula-comment">// Annual total (tonnes CO₂)</span><br>
+      Total = CO₂_per_tree × N_trees × Years
+    </div>
+    <div class="calc-field">
+      <div class="calc-label">Tree Species</div>
+      <select class="calc-select" id="calcSpecies" onchange="onSpeciesChange()">
+        <option value="mangrove">Sundari Mangrove (Heritiera fomes)</option>
+        <option value="teak">Teak (Tectona grandis)</option>
+        <option value="bamboo">Bamboo (Bambusa vulgaris)</option>
+        <option value="sal">Sal Tree (Shorea robusta)</option>
+        <option value="jackfruit">Jackfruit (Artocarpus heterophyllus)</option>
+        <option value="mahogany">Mahogany (Swietenia macrophylla)</option>
+        <option value="neem">Neem (Azadirachta indica)</option>
+        <option value="rain_tree">Rain Tree (Albizia saman)</option>
+      </select>
+    </div>
+    <div class="calc-field">
+      <div class="calc-label">Number of Trees</div>
+      <input class="calc-input" id="calcTrees" type="number" value="1000000" min="1">
+    </div>
+    <div class="calc-field">
+      <div class="calc-label">Avg Biomass per Tree (kg)</div>
+      <input class="calc-input" id="calcBiomass" type="number" value="485" min="1">
+    </div>
+    <div class="calc-field">
+      <div class="calc-label">Projection (years)</div>
+      <input class="calc-input" id="calcYears" type="number" value="5" min="1" max="100">
+    </div>
+    <button class="calc-btn" onclick="runCarbonCalc()">▶ CALCULATE CO₂ SEQUESTRATION</button>
+    <div class="result-card" id="calcResult">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div>
+          <div style="font-family:var(--mono);font-size:0.46rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Total CO₂ Sequestered</div>
+          <div class="result-main" id="resultCO2">—</div>
+          <div class="result-unit">tonnes CO₂</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--mono);font-size:0.46rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Carbon Credits</div>
+          <div style="font-family:var(--display);font-size:1.4rem;font-weight:900;color:var(--gold)" id="resultCredits">—</div>
+          <div style="font-family:var(--mono);font-size:0.5rem;color:var(--muted)">@ $30/t Verra VCS</div>
+        </div>
+      </div>
+      <div class="result-grid">
+        <div class="result-mini"><div class="result-mini-val" id="rCO2Tree">—</div><div class="result-mini-lbl">t CO₂/tree</div></div>
+        <div class="result-mini"><div class="result-mini-val" id="rAnnual">—</div><div class="result-mini-lbl">t/year</div></div>
+        <div class="result-mini"><div class="result-mini-val" id="rMt">—</div><div class="result-mini-lbl">MtCO₂</div></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:0.46rem;color:var(--muted);margin-top:8px;padding-top:6px;border-top:1px solid var(--border)" id="resultNote"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:8px">
+    <div class="section-label">Bangladesh Species Database</div>
+    <div style="overflow-x:auto"><table class="species-table"><thead><tr><th>Species</th><th>Type</th><th>CO₂/yr</th><th>Biomass</th></tr></thead><tbody id="speciesTbody"></tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="section-label">Division Carbon Accounting</div>
+    <div style="overflow-x:auto"><table class="acc-table"><thead><tr><th>Division</th><th>Trees</th><th>CO₂/yr</th><th>5-yr Mt</th><th>$M VCS</th></tr></thead><tbody id="accTbody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══ IOT ═══ -->
+<div class="page" id="page-iot">
+  <div class="section-label">IoT Sensor Network · Live</div>
+  <div class="iot-grid">
+    <div class="iot-card"><div class="iot-val" style="color:var(--acid)">25.3°C</div><div class="iot-unit">Temperature</div><div class="iot-trend" style="color:var(--orange)">↑ +0.3° today</div></div>
+    <div class="iot-card"><div class="iot-val" style="color:var(--blue)">78%</div><div class="iot-unit">Humidity</div><div class="iot-trend" style="color:var(--muted)">→ Stable</div></div>
+    <div class="iot-card"><div class="iot-val" style="color:var(--lime)">412</div><div class="iot-unit">CO₂ ppm</div><div class="iot-trend" style="color:var(--acid)">↓ -8 vs last week</div></div>
+    <div class="iot-card"><div class="iot-val" style="color:#4ade80">65%</div><div class="iot-unit">Soil Moisture</div><div class="iot-trend" style="color:var(--acid)">✓ Optimal</div></div>
+  </div>
+  <div class="card" style="margin-bottom:8px">
+    <div class="section-label">IoT Deployment Phases · 9,200 LoRaWAN Nodes</div>
+    <div class="iot-phase"><div class="iot-phase-header"><span class="iot-phase-name">PILOT</span><span class="iot-phase-nodes">800 nodes · 12.5%</span></div><div class="iot-phase-desc">M7-12 · 8 Division HQs</div><div class="prog-wrap"><div class="prog-fill" style="width:100%;background:linear-gradient(90deg,var(--green),var(--acid))"></div></div></div>
+    <div class="iot-phase"><div class="iot-phase-header"><span class="iot-phase-name">WAVE 1</span><span class="iot-phase-nodes">2,400 nodes · 37.5%</span></div><div class="iot-phase-desc">Y2 Q1-Q2 · 16 Major Districts</div><div class="prog-wrap"><div class="prog-fill" style="width:100%;background:linear-gradient(90deg,var(--green),var(--acid))"></div></div></div>
+    <div class="iot-phase"><div class="iot-phase-header"><span class="iot-phase-name">WAVE 2</span><span class="iot-phase-nodes">3,600 nodes · 75%</span></div><div class="iot-phase-desc">Y2 Q3-Q4 · 24 Medium Districts</div><div class="prog-wrap"><div class="prog-fill" style="width:75%;background:linear-gradient(90deg,var(--blue),var(--lime))"></div></div></div>
+    <div class="iot-phase"><div class="iot-phase-header"><span class="iot-phase-name">WAVE 3</span><span class="iot-phase-nodes">2,400 nodes · 100%</span></div><div class="iot-phase-desc">Y3 Q1-Q2 · 16 Remaining</div><div class="prog-wrap"><div class="prog-fill" style="width:28%;background:linear-gradient(90deg,var(--orange),var(--gold))"></div></div></div>
+  </div>
+  <div class="card">
+    <div class="section-label">Sensor Nodes</div>
+    <div class="alert-banner ok" style="margin-bottom:8px"><div class="ab-icon">✅</div><div class="ab-text"><div class="ab-title">4/5 Sensors Online</div><div class="ab-sub">All systems nominal · Last sync 2 min ago</div></div></div>
+    <div class="alert-banner warn"><div class="ab-icon">⚠️</div><div class="ab-text"><div class="ab-title">Rajshahi Sensor Low Battery</div><div class="ab-sub">15% remaining · Maintenance needed</div></div></div>
+    <div style="margin-top:8px">
+      <div class="sensor-row"><div class="sensor-dot" style="background:var(--acid)"></div><span class="sensor-name">Chittagong Node-01</span><span class="sensor-val">Online</span><span class="sensor-status status-online">●</span></div>
+      <div class="sensor-row"><div class="sensor-dot" style="background:var(--acid)"></div><span class="sensor-name">Khulna Node-03</span><span class="sensor-val">Online</span><span class="sensor-status status-online">●</span></div>
+      <div class="sensor-row"><div class="sensor-dot" style="background:var(--acid)"></div><span class="sensor-name">Sylhet Node-07</span><span class="sensor-val">Online</span><span class="sensor-status status-online">●</span></div>
+      <div class="sensor-row"><div class="sensor-dot" style="background:var(--orange)"></div><span class="sensor-name">Rajshahi Node-12</span><span class="sensor-val">15% batt</span><span class="sensor-status status-warn">⚠</span></div>
+      <div class="sensor-row"><div class="sensor-dot" style="background:var(--red)"></div><span class="sensor-name">Rangpur Node-09</span><span class="sensor-val">Offline</span><span class="sensor-status status-offline">✕</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SPECIES ═══ -->
+<div class="page" id="page-species">
+  <div class="section-label">Top Species · Plantation Program</div>
+  <div class="sp-card"><div class="spc-header"><div><div class="spc-name">Mangrove (Sundari)</div><div class="spc-sci">Heritiera fomes</div></div><div class="spc-badge">32.4M planted</div></div><div class="spc-zones"><span class="spc-zone">Sundarban</span><span class="spc-zone">Coastal</span><span class="spc-zone">Delta</span></div><div class="spc-bar-wrap"><div class="spc-bar" style="width:100%;background:linear-gradient(90deg,#15803d,#4ade80)"></div></div><div class="spc-why">Primary carbon sink species. UNESCO World Heritage protection. CO₂ absorption 3x higher than terrestrial trees.</div></div>
+  <div class="sp-card"><div class="spc-header"><div><div class="spc-name">Teak</div><div class="spc-sci">Tectona grandis</div></div><div class="spc-badge">28.1M planted</div></div><div class="spc-zones"><span class="spc-zone">Hill Tracts</span><span class="spc-zone">Sylhet</span></div><div class="spc-bar-wrap"><div class="spc-bar" style="width:87%;background:linear-gradient(90deg,#0e7490,#22d3ee)"></div></div><div class="spc-why">High-value timber species with 80-year rotation cycle. Supports carbon credits under Verra VCS methodology.</div></div>
+  <div class="sp-card"><div class="spc-header"><div><div class="spc-name">Bamboo</div><div class="spc-sci">Bambusa vulgaris</div></div><div class="spc-badge">24.7M planted</div></div><div class="spc-zones"><span class="spc-zone">Mymensingh</span><span class="spc-zone">Sylhet</span><span class="spc-zone">Rangpur</span></div><div class="spc-bar-wrap"><div class="spc-bar" style="width:76%;background:linear-gradient(90deg,var(--green),var(--acid))"></div></div><div class="spc-why">Fastest carbon sequestration rate. Dual-use: carbon credits + community livelihood. 5-year harvest cycle.</div></div>
+  <div class="sp-card"><div class="spc-header"><div><div class="spc-name">Sal Tree</div><div class="spc-sci">Shorea robusta</div></div><div class="spc-badge">19.2M planted</div></div><div class="spc-zones"><span class="spc-zone">Madhupur</span><span class="spc-zone">Bhawal</span></div><div class="spc-bar-wrap"><div class="spc-bar" style="width:59%;background:linear-gradient(90deg,#78350f,#f59e0b)"></div></div><div class="spc-why">Native deciduous species. Critical biodiversity corridor. High drought resistance.</div></div>
+  <div class="sp-card"><div class="spc-header"><div><div class="spc-name">Neem</div><div class="spc-sci">Azadirachta indica</div></div><div class="spc-badge">15.8M planted</div></div><div class="spc-zones"><span class="spc-zone">Dhaka</span><span class="spc-zone">Rajshahi</span><span class="spc-zone">Khulna</span></div><div class="spc-bar-wrap"><div class="spc-bar" style="width:49%;background:linear-gradient(90deg,#6d28d9,#a78bfa)"></div></div><div class="spc-why">Urban &amp; roadside planting. Medicinal value. Air quality improvement in industrial zones.</div></div>
+</div>
+
+<!-- ═══ AI ═══ -->
+<div class="page" id="page-ai">
+  <div class="section-label">AI Forest Intelligence</div>
+  <div class="chat-wrap">
+    <div class="quick-btns">
+      <button class="qbtn" onclick="quickAsk('📊 Survival by division')">📊 Survival by division</button>
+      <button class="qbtn" onclick="quickAsk('💰 Carbon credits')">💰 Carbon credits</button>
+      <button class="qbtn" onclick="quickAsk('⚠️ Alerts')">⚠️ Alerts</button>
+      <button class="qbtn" onclick="quickAsk('🛰 NDVI trend')">🛰 NDVI trend</button>
+      <button class="qbtn" onclick="quickAsk('🌳 Sundarban')">🌳 Sundarban</button>
+    </div>
+    <div class="chat-msgs" id="chatMsgs">
+      <div class="msg-ai">
+        <div class="msg-ai-label">🌿 BanglaTrees AI</div>
+        Bangladesh's 25 Crore Tree Initiative is currently at <strong>74.9% completion</strong>. CO₂ sequestration is tracking at 94.8% of target. Ask me anything about forest health, carbon data, or division progress.
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chatInput" placeholder="Ask about forest health, carbon data..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="chat-send" onclick="sendChat()">➤</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- end app-scroll -->
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" style="grid-template-columns:repeat(6,1fr)">
+  <button class="nav-item active" onclick="showPage('home',this)"><span class="nav-icon">🏠</span>HOME</button>
+  <button class="nav-item" onclick="showPage('map',this)"><span class="nav-icon">🗺️</span>MAP</button>
+  <button class="nav-item" onclick="showPage('carbon',this)"><span class="nav-icon">⚗️</span>CARBON</button>
+  <button class="nav-item" onclick="showPage('iot',this)"><span class="nav-icon">📡</span>IOT</button>
+  <button class="nav-item" onclick="showPage('species',this)"><span class="nav-icon">🌳</span>SPECIES</button>
+  <button class="nav-item" onclick="showPage('ai',this)"><span class="nav-icon">🤖</span>AI</button>
+</div>
+
+</div><!-- end app-wrapper -->
+
+<script>
+// ══════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════
+const DISTRICTS = {
+'Chittagong':{color:'#f59e0b',division:'Chittagong',trees:'12.4M',co2:0.62,ndvi:0.72,survival:82,coords:[22.3569,91.7832],upazilas:[
+{name:'Chittagong Sadar',trees:'1.2M',ndvi:0.55,progress:{prep:100,plant:90,monitor:72,sustain:35}},
+{name:'Rangunia',trees:'0.9M',ndvi:0.68,progress:{prep:100,plant:88,monitor:64,sustain:28}},
+{name:'Sitakunda',trees:'1.1M',ndvi:0.65,progress:{prep:100,plant:85,monitor:58,sustain:22}},
+{name:'Mirsharai',trees:'1.0M',ndvi:0.62,progress:{prep:100,plant:80,monitor:52,sustain:18}},
+{name:'Sandwip',trees:'0.7M',ndvi:0.58,progress:{prep:100,plant:78,monitor:48,sustain:15}},
+{name:'Anwara',trees:'0.8M',ndvi:0.60,progress:{prep:100,plant:82,monitor:55,sustain:20}},
+{name:'Boalkhali',trees:'0.6M',ndvi:0.57,progress:{prep:100,plant:76,monitor:46,sustain:14}},
+{name:'Patiya',trees:'0.9M',ndvi:0.63,progress:{prep:100,plant:84,monitor:60,sustain:24}},
+{name:'Chandanaish',trees:'0.5M',ndvi:0.59,progress:{prep:100,plant:77,monitor:50,sustain:16}},
+{name:'Satkania',trees:'0.8M',ndvi:0.66,progress:{prep:100,plant:86,monitor:62,sustain:26}},
+{name:'Lohagara',trees:'0.7M',ndvi:0.64,progress:{prep:100,plant:83,monitor:58,sustain:22}},
+{name:'Banshkhali',trees:'0.6M',ndvi:0.61,progress:{prep:100,plant:80,monitor:54,sustain:19}},
+{name:'Fatikchhari',trees:'1.1M',ndvi:0.69,progress:{prep:100,plant:89,monitor:68,sustain:32}},
+{name:'Hathazari',trees:'0.9M',ndvi:0.67,progress:{prep:100,plant:87,monitor:65,sustain:29}}]},
+"Cox's Bazar":{color:'#f59e0b',division:'Chittagong',trees:'8.6M',co2:0.48,ndvi:0.74,survival:80,coords:[21.4272,92.0058],upazilas:[
+{name:"Cox's Bazar Sadar",trees:'1.4M',ndvi:0.70,progress:{prep:100,plant:88,monitor:65,sustain:30}},
+{name:'Chakaria',trees:'1.2M',ndvi:0.75,progress:{prep:100,plant:92,monitor:72,sustain:38}},
+{name:'Teknaf',trees:'1.0M',ndvi:0.78,progress:{prep:100,plant:94,monitor:76,sustain:42}},
+{name:'Ukhia',trees:'0.9M',ndvi:0.76,progress:{prep:100,plant:91,monitor:70,sustain:36}},
+{name:'Maheshkhali',trees:'0.8M',ndvi:0.71,progress:{prep:100,plant:87,monitor:64,sustain:28}},
+{name:'Kutubdia',trees:'0.5M',ndvi:0.68,progress:{prep:100,plant:84,monitor:60,sustain:24}},
+{name:'Pekua',trees:'0.6M',ndvi:0.72,progress:{prep:100,plant:89,monitor:67,sustain:31}},
+{name:'Ramu',trees:'0.8M',ndvi:0.74,progress:{prep:100,plant:90,monitor:69,sustain:34}}]},
+'Bandarban':{color:'#f59e0b',division:'Chittagong',trees:'5.8M',co2:0.35,ndvi:0.81,survival:78,coords:[22.1953,92.2184],upazilas:[
+{name:'Bandarban Sadar',trees:'1.4M',ndvi:0.80,progress:{prep:100,plant:95,monitor:80,sustain:45}},
+{name:'Ruma',trees:'0.9M',ndvi:0.84,progress:{prep:100,plant:96,monitor:84,sustain:50}},
+{name:'Rowangchhari',trees:'0.8M',ndvi:0.82,progress:{prep:100,plant:94,monitor:81,sustain:47}},
+{name:'Lama',trees:'0.7M',ndvi:0.79,progress:{prep:100,plant:93,monitor:78,sustain:43}},
+{name:'Alikadam',trees:'0.6M',ndvi:0.80,progress:{prep:100,plant:93,monitor:79,sustain:44}},
+{name:'Thanchi',trees:'0.8M',ndvi:0.83,progress:{prep:100,plant:95,monitor:82,sustain:48}},
+{name:'Naikhongchhari',trees:'0.6M',ndvi:0.81,progress:{prep:100,plant:94,monitor:80,sustain:46}}]},
+'Rangamati':{color:'#f59e0b',division:'Chittagong',trees:'6.2M',co2:0.38,ndvi:0.79,survival:77,coords:[22.6352,92.2034],upazilas:[
+{name:'Rangamati Sadar',trees:'1.2M',ndvi:0.77,progress:{prep:100,plant:93,monitor:76,sustain:40}},
+{name:'Kaptai',trees:'0.9M',ndvi:0.80,progress:{prep:100,plant:95,monitor:79,sustain:44}},
+{name:'Kawkhali',trees:'0.7M',ndvi:0.78,progress:{prep:100,plant:92,monitor:75,sustain:39}},
+{name:'Bagaichhari',trees:'0.8M',ndvi:0.80,progress:{prep:100,plant:94,monitor:78,sustain:42}},
+{name:'Barkal',trees:'0.7M',ndvi:0.81,progress:{prep:100,plant:95,monitor:80,sustain:45}},
+{name:'Belaichhari',trees:'0.5M',ndvi:0.79,progress:{prep:100,plant:93,monitor:77,sustain:41}},
+{name:'Jurachhari',trees:'0.6M',ndvi:0.78,progress:{prep:100,plant:92,monitor:75,sustain:38}},
+{name:'Langadu',trees:'0.8M',ndvi:0.79,progress:{prep:100,plant:93,monitor:76,sustain:40}}]},
+'Khagrachhari':{color:'#f59e0b',division:'Chittagong',trees:'5.4M',co2:0.32,ndvi:0.76,survival:76,coords:[23.1193,91.9847],upazilas:[
+{name:'Khagrachhari Sadar',trees:'1.0M',ndvi:0.74,progress:{prep:100,plant:91,monitor:73,sustain:37}},
+{name:'Dighinala',trees:'0.8M',ndvi:0.77,progress:{prep:100,plant:93,monitor:76,sustain:40}},
+{name:'Mahalchhari',trees:'0.6M',ndvi:0.78,progress:{prep:100,plant:93,monitor:76,sustain:40}},
+{name:'Matiranga',trees:'0.8M',ndvi:0.76,progress:{prep:100,plant:92,monitor:74,sustain:38}},
+{name:'Ramgarh',trees:'0.7M',ndvi:0.75,progress:{prep:100,plant:91,monitor:72,sustain:36}},
+{name:'Lakshmichhari',trees:'0.5M',ndvi:0.76,progress:{prep:100,plant:92,monitor:74,sustain:38}},
+{name:'Guimara',trees:'0.4M',ndvi:0.74,progress:{prep:100,plant:90,monitor:71,sustain:35}},
+{name:'Manikchari',trees:'0.6M',ndvi:0.75,progress:{prep:100,plant:91,monitor:73,sustain:37}}]},
+'Feni':{color:'#f59e0b',division:'Chittagong',trees:'3.2M',co2:0.18,ndvi:0.55,survival:74,coords:[23.0151,91.3976],upazilas:[
+{name:'Feni Sadar',trees:'0.8M',ndvi:0.54,progress:{prep:100,plant:80,monitor:56,sustain:22}},
+{name:'Chhagalnaiya',trees:'0.6M',ndvi:0.56,progress:{prep:100,plant:78,monitor:52,sustain:19}},
+{name:'Daganbhuiyan',trees:'0.7M',ndvi:0.57,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Parshuram',trees:'0.4M',ndvi:0.53,progress:{prep:100,plant:76,monitor:50,sustain:17}},
+{name:'Sonagazi',trees:'0.4M',ndvi:0.55,progress:{prep:100,plant:77,monitor:52,sustain:18}},
+{name:'Fulgazi',trees:'0.3M',ndvi:0.54,progress:{prep:100,plant:76,monitor:51,sustain:17}}]},
+'Lakshmipur':{color:'#f59e0b',division:'Chittagong',trees:'2.8M',co2:0.16,ndvi:0.52,survival:72,coords:[22.9425,90.8311],upazilas:[
+{name:'Lakshmipur Sadar',trees:'0.8M',ndvi:0.51,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Raipur',trees:'0.6M',ndvi:0.53,progress:{prep:100,plant:79,monitor:53,sustain:19}},
+{name:'Ramganj',trees:'0.5M',ndvi:0.52,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Ramgati',trees:'0.5M',ndvi:0.51,progress:{prep:100,plant:77,monitor:51,sustain:17}},
+{name:'Kamalnagar',trees:'0.4M',ndvi:0.50,progress:{prep:100,plant:76,monitor:50,sustain:16}}]},
+'Noakhali':{color:'#f59e0b',division:'Chittagong',trees:'4.1M',co2:0.22,ndvi:0.54,survival:73,coords:[22.8696,91.0995],upazilas:[
+{name:'Noakhali Sadar',trees:'0.8M',ndvi:0.53,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Begumganj',trees:'0.7M',ndvi:0.55,progress:{prep:100,plant:80,monitor:54,sustain:20}},
+{name:'Companiganj',trees:'0.5M',ndvi:0.54,progress:{prep:100,plant:79,monitor:53,sustain:19}},
+{name:'Chatkhil',trees:'0.4M',ndvi:0.52,progress:{prep:100,plant:77,monitor:51,sustain:17}},
+{name:'Hatiya',trees:'0.6M',ndvi:0.56,progress:{prep:100,plant:81,monitor:55,sustain:21}},
+{name:'Senbagh',trees:'0.4M',ndvi:0.53,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Subarnachar',trees:'0.5M',ndvi:0.54,progress:{prep:100,plant:79,monitor:53,sustain:19}},
+{name:'Kabirhat',trees:'0.2M',ndvi:0.52,progress:{prep:100,plant:77,monitor:50,sustain:16}}]},
+'Comilla':{color:'#f59e0b',division:'Chittagong',trees:'5.8M',co2:0.30,ndvi:0.53,survival:73,coords:[23.4607,91.1809],upazilas:[
+{name:'Comilla Sadar',trees:'1.0M',ndvi:0.51,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Barura',trees:'0.5M',ndvi:0.54,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Brahmanpara',trees:'0.4M',ndvi:0.53,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Burichang',trees:'0.4M',ndvi:0.52,progress:{prep:100,plant:78,monitor:53,sustain:19}},
+{name:'Chandina',trees:'0.5M',ndvi:0.53,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Chauddagram',trees:'0.5M',ndvi:0.54,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Daudkandi',trees:'0.4M',ndvi:0.52,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Debidwar',trees:'0.5M',ndvi:0.53,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Homna',trees:'0.3M',ndvi:0.52,progress:{prep:100,plant:78,monitor:53,sustain:19}},
+{name:'Laksam',trees:'0.4M',ndvi:0.53,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Meghna',trees:'0.3M',ndvi:0.52,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Muradnagar',trees:'0.5M',ndvi:0.53,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Nangalkot',trees:'0.5M',ndvi:0.54,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Titas',trees:'0.4M',ndvi:0.52,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Monohorgonj',trees:'0.3M',ndvi:0.53,progress:{prep:100,plant:79,monitor:54,sustain:20}}]},
+'Brahmanbaria':{color:'#f59e0b',division:'Chittagong',trees:'4.2M',co2:0.21,ndvi:0.55,survival:74,coords:[23.9571,91.1115],upazilas:[
+{name:'Brahmanbaria Sadar',trees:'0.9M',ndvi:0.53,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Ashuganj',trees:'0.4M',ndvi:0.54,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Bancharampur',trees:'0.5M',ndvi:0.55,progress:{prep:100,plant:81,monitor:56,sustain:22}},
+{name:'Bijoynagar',trees:'0.4M',ndvi:0.56,progress:{prep:100,plant:82,monitor:57,sustain:23}},
+{name:'Kasba',trees:'0.5M',ndvi:0.55,progress:{prep:100,plant:81,monitor:56,sustain:22}},
+{name:'Nabinagar',trees:'0.6M',ndvi:0.56,progress:{prep:100,plant:82,monitor:57,sustain:23}},
+{name:'Nasirnagar',trees:'0.5M',ndvi:0.57,progress:{prep:100,plant:83,monitor:58,sustain:24}},
+{name:'Sarail',trees:'0.4M',ndvi:0.55,progress:{prep:100,plant:81,monitor:56,sustain:22}}]},
+'Dhaka':{color:'#ef4444',division:'Dhaka',trees:'6.2M',co2:0.28,ndvi:0.44,survival:68,coords:[23.8103,90.4125],upazilas:[
+{name:'Dhamrai',trees:'0.9M',ndvi:0.46,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Dohar',trees:'0.5M',ndvi:0.42,progress:{prep:100,plant:72,monitor:44,sustain:12}},
+{name:'Keraniganj',trees:'0.7M',ndvi:0.41,progress:{prep:100,plant:70,monitor:42,sustain:10}},
+{name:'Nawabganj',trees:'0.6M',ndvi:0.43,progress:{prep:100,plant:73,monitor:45,sustain:13}},
+{name:'Savar',trees:'0.8M',ndvi:0.44,progress:{prep:100,plant:75,monitor:48,sustain:15}},
+{name:'Tejgaon',trees:'0.4M',ndvi:0.38,progress:{prep:100,plant:65,monitor:38,sustain:8}},
+{name:'Lalbagh',trees:'0.3M',ndvi:0.36,progress:{prep:100,plant:62,monitor:35,sustain:6}}]},
+'Gazipur':{color:'#ef4444',division:'Dhaka',trees:'5.1M',co2:0.24,ndvi:0.48,survival:70,coords:[23.9999,90.4122],upazilas:[
+{name:'Gazipur Sadar',trees:'1.2M',ndvi:0.46,progress:{prep:100,plant:76,monitor:50,sustain:16}},
+{name:'Kaliakair',trees:'0.9M',ndvi:0.49,progress:{prep:100,plant:79,monitor:53,sustain:19}},
+{name:'Kaliganj',trees:'0.7M',ndvi:0.50,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Kapasia',trees:'0.8M',ndvi:0.48,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Sreepur',trees:'1.0M',ndvi:0.51,progress:{prep:100,plant:81,monitor:56,sustain:22}},
+{name:'Tongi',trees:'0.5M',ndvi:0.44,progress:{prep:100,plant:73,monitor:46,sustain:13}}]},
+'Narayanganj':{color:'#ef4444',division:'Dhaka',trees:'3.2M',co2:0.14,ndvi:0.40,survival:65,coords:[23.6238,90.4985],upazilas:[
+{name:'Narayanganj Sadar',trees:'0.8M',ndvi:0.38,progress:{prep:100,plant:64,monitor:37,sustain:7}},
+{name:'Araihazar',trees:'0.6M',ndvi:0.42,progress:{prep:100,plant:70,monitor:43,sustain:11}},
+{name:'Bandar',trees:'0.4M',ndvi:0.39,progress:{prep:100,plant:66,monitor:39,sustain:8}},
+{name:'Rupganj',trees:'0.7M',ndvi:0.43,progress:{prep:100,plant:72,monitor:45,sustain:13}},
+{name:'Sonargaon',trees:'0.7M',ndvi:0.41,progress:{prep:100,plant:69,monitor:42,sustain:10}}]},
+'Narsingdi':{color:'#ef4444',division:'Dhaka',trees:'3.8M',co2:0.18,ndvi:0.50,survival:72,coords:[23.9324,90.7151],upazilas:[
+{name:'Narsingdi Sadar',trees:'0.9M',ndvi:0.49,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Belabo',trees:'0.5M',ndvi:0.51,progress:{prep:100,plant:81,monitor:56,sustain:22}},
+{name:'Monohardi',trees:'0.6M',ndvi:0.50,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Palash',trees:'0.5M',ndvi:0.48,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Raipura',trees:'0.7M',ndvi:0.52,progress:{prep:100,plant:82,monitor:57,sustain:23}},
+{name:'Shibpur',trees:'0.6M',ndvi:0.50,progress:{prep:100,plant:80,monitor:55,sustain:21}}]},
+'Manikganj':{color:'#ef4444',division:'Dhaka',trees:'3.4M',co2:0.16,ndvi:0.47,survival:70,coords:[23.8634,90.0082],upazilas:[
+{name:'Manikganj Sadar',trees:'0.8M',ndvi:0.46,progress:{prep:100,plant:77,monitor:51,sustain:17}},
+{name:'Daulatpur',trees:'0.6M',ndvi:0.48,progress:{prep:100,plant:79,monitor:53,sustain:19}},
+{name:'Ghior',trees:'0.5M',ndvi:0.47,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Harirampur',trees:'0.5M',ndvi:0.45,progress:{prep:100,plant:76,monitor:50,sustain:16}},
+{name:'Saturia',trees:'0.5M',ndvi:0.47,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Shivalaya',trees:'0.4M',ndvi:0.46,progress:{prep:100,plant:77,monitor:51,sustain:17}},
+{name:'Singair',trees:'0.5M',ndvi:0.48,progress:{prep:100,plant:79,monitor:53,sustain:19}}]},
+'Munshiganj':{color:'#ef4444',division:'Dhaka',trees:'2.8M',co2:0.13,ndvi:0.45,survival:68,coords:[23.5422,90.5305],upazilas:[
+{name:'Munshiganj Sadar',trees:'0.7M',ndvi:0.44,progress:{prep:100,plant:74,monitor:47,sustain:14}},
+{name:'Gazaria',trees:'0.4M',ndvi:0.43,progress:{prep:100,plant:72,monitor:45,sustain:12}},
+{name:'Lohajang',trees:'0.5M',ndvi:0.46,progress:{prep:100,plant:76,monitor:50,sustain:16}},
+{name:'Sirajdikhan',trees:'0.5M',ndvi:0.45,progress:{prep:100,plant:75,monitor:49,sustain:15}},
+{name:'Sreenagar',trees:'0.4M',ndvi:0.44,progress:{prep:100,plant:74,monitor:48,sustain:14}},
+{name:'Tongibari',trees:'0.3M',ndvi:0.46,progress:{prep:100,plant:76,monitor:50,sustain:16}}]},
+'Madaripur':{color:'#ef4444',division:'Dhaka',trees:'2.6M',co2:0.12,ndvi:0.50,survival:71,coords:[23.1642,90.1987],upazilas:[
+{name:'Madaripur Sadar',trees:'0.8M',ndvi:0.49,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Kalkini',trees:'0.6M',ndvi:0.51,progress:{prep:100,plant:81,monitor:56,sustain:22}},
+{name:'Rajoir',trees:'0.5M',ndvi:0.50,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Shibchar',trees:'0.7M',ndvi:0.52,progress:{prep:100,plant:82,monitor:57,sustain:23}}]},
+'Shariatpur':{color:'#ef4444',division:'Dhaka',trees:'2.4M',co2:0.11,ndvi:0.49,survival:70,coords:[23.2423,90.4348],upazilas:[
+{name:'Shariatpur Sadar',trees:'0.6M',ndvi:0.48,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Bhedarganj',trees:'0.4M',ndvi:0.50,progress:{prep:100,plant:80,monitor:54,sustain:20}},
+{name:'Damudya',trees:'0.4M',ndvi:0.49,progress:{prep:100,plant:79,monitor:53,sustain:19}},
+{name:'Gosairhat',trees:'0.4M',ndvi:0.47,progress:{prep:100,plant:77,monitor:51,sustain:17}},
+{name:'Naria',trees:'0.4M',ndvi:0.50,progress:{prep:100,plant:80,monitor:54,sustain:20}},
+{name:'Zanjira',trees:'0.2M',ndvi:0.48,progress:{prep:100,plant:78,monitor:52,sustain:18}}]},
+'Faridpur':{color:'#ef4444',division:'Dhaka',trees:'3.6M',co2:0.17,ndvi:0.48,survival:71,coords:[23.6070,89.8429],upazilas:[
+{name:'Faridpur Sadar',trees:'0.9M',ndvi:0.47,progress:{prep:100,plant:77,monitor:52,sustain:18}},
+{name:'Boalmari',trees:'0.5M',ndvi:0.49,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Alfadanga',trees:'0.4M',ndvi:0.48,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Madhukhali',trees:'0.5M',ndvi:0.50,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Bhanga',trees:'0.5M',ndvi:0.47,progress:{prep:100,plant:77,monitor:51,sustain:17}},
+{name:'Nagarkanda',trees:'0.4M',ndvi:0.48,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Charbhadrasan',trees:'0.3M',ndvi:0.46,progress:{prep:100,plant:76,monitor:50,sustain:16}},
+{name:'Sadarpur',trees:'0.3M',ndvi:0.47,progress:{prep:100,plant:77,monitor:51,sustain:17}},
+{name:'Shaltha',trees:'0.2M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:15}}]},
+'Gopalganj':{color:'#ef4444',division:'Dhaka',trees:'2.8M',co2:0.13,ndvi:0.51,survival:71,coords:[23.0050,89.8268],upazilas:[
+{name:'Gopalganj Sadar',trees:'0.8M',ndvi:0.50,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Kashiani',trees:'0.5M',ndvi:0.52,progress:{prep:100,plant:81,monitor:56,sustain:22}},
+{name:'Kotalipara',trees:'0.6M',ndvi:0.53,progress:{prep:100,plant:82,monitor:57,sustain:23}},
+{name:'Muksudpur',trees:'0.5M',ndvi:0.51,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Tungipara',trees:'0.4M',ndvi:0.52,progress:{prep:100,plant:81,monitor:56,sustain:22}}]},
+'Rajbari':{color:'#ef4444',division:'Dhaka',trees:'2.2M',co2:0.10,ndvi:0.46,survival:69,coords:[23.7577,89.6413],upazilas:[
+{name:'Rajbari Sadar',trees:'0.7M',ndvi:0.45,progress:{prep:100,plant:75,monitor:49,sustain:15}},
+{name:'Baliakandi',trees:'0.4M',ndvi:0.47,progress:{prep:100,plant:77,monitor:51,sustain:17}},
+{name:'Goalandaghat',trees:'0.4M',ndvi:0.46,progress:{prep:100,plant:76,monitor:50,sustain:16}},
+{name:'Kalukhali',trees:'0.4M',ndvi:0.46,progress:{prep:100,plant:76,monitor:50,sustain:16}},
+{name:'Pangsha',trees:'0.3M',ndvi:0.47,progress:{prep:100,plant:77,monitor:51,sustain:17}}]},
+'Khulna':{color:'#3b82f6',division:'Khulna',trees:'8.2M',co2:0.42,ndvi:0.62,survival:78,coords:[22.8456,89.5403],upazilas:[
+{name:'Khulna Sadar',trees:'1.2M',ndvi:0.58,progress:{prep:100,plant:82,monitor:58,sustain:24}},
+{name:'Batiaghata',trees:'0.8M',ndvi:0.64,progress:{prep:100,plant:86,monitor:63,sustain:29}},
+{name:'Dacope',trees:'0.9M',ndvi:0.72,progress:{prep:100,plant:90,monitor:74,sustain:44}},
+{name:'Dumuria',trees:'0.8M',ndvi:0.65,progress:{prep:100,plant:86,monitor:63,sustain:29}},
+{name:'Dighalia',trees:'0.5M',ndvi:0.60,progress:{prep:100,plant:83,monitor:59,sustain:25}},
+{name:'Koyra',trees:'1.0M',ndvi:0.66,progress:{prep:100,plant:82,monitor:60,sustain:26}},
+{name:'Paikgachha',trees:'0.7M',ndvi:0.63,progress:{prep:100,plant:85,monitor:62,sustain:28}},
+{name:'Phultala',trees:'0.4M',ndvi:0.59,progress:{prep:100,plant:82,monitor:57,sustain:23}},
+{name:'Rupsha',trees:'0.5M',ndvi:0.60,progress:{prep:100,plant:83,monitor:58,sustain:24}},
+{name:'Terokhada',trees:'0.4M',ndvi:0.62,progress:{prep:100,plant:84,monitor:60,sustain:26}}]},
+'Bagerhat':{color:'#3b82f6',division:'Khulna',trees:'6.8M',co2:0.36,ndvi:0.68,survival:76,coords:[22.6602,89.7854],upazilas:[
+{name:'Bagerhat Sadar',trees:'1.1M',ndvi:0.65,progress:{prep:100,plant:84,monitor:62,sustain:30}},
+{name:'Chitalmari',trees:'0.6M',ndvi:0.68,progress:{prep:100,plant:87,monitor:65,sustain:33}},
+{name:'Fakirhat',trees:'0.7M',ndvi:0.70,progress:{prep:100,plant:89,monitor:68,sustain:36}},
+{name:'Kachua',trees:'0.7M',ndvi:0.67,progress:{prep:100,plant:86,monitor:64,sustain:32}},
+{name:'Mollahat',trees:'0.6M',ndvi:0.66,progress:{prep:100,plant:85,monitor:63,sustain:31}},
+{name:'Mongla',trees:'0.8M',ndvi:0.72,progress:{prep:100,plant:90,monitor:70,sustain:40}},
+{name:'Morrelganj',trees:'0.7M',ndvi:0.68,progress:{prep:100,plant:87,monitor:65,sustain:33}},
+{name:'Rampal',trees:'0.7M',ndvi:0.70,progress:{prep:100,plant:89,monitor:68,sustain:36}},
+{name:'Sarankhola',trees:'0.6M',ndvi:0.71,progress:{prep:100,plant:89,monitor:69,sustain:38}},
+{name:'Sundarbans E.',trees:'1.3M',ndvi:0.82,progress:{prep:100,plant:98,monitor:88,sustain:62}}]},
+'Satkhira':{color:'#3b82f6',division:'Khulna',trees:'5.6M',co2:0.30,ndvi:0.65,survival:74,coords:[22.7185,89.0705],upazilas:[
+{name:'Satkhira Sadar',trees:'1.0M',ndvi:0.62,progress:{prep:100,plant:83,monitor:60,sustain:26}},
+{name:'Assasuni',trees:'0.8M',ndvi:0.66,progress:{prep:100,plant:86,monitor:63,sustain:30}},
+{name:'Debhata',trees:'0.6M',ndvi:0.64,progress:{prep:100,plant:84,monitor:62,sustain:28}},
+{name:'Kalaroa',trees:'0.7M',ndvi:0.63,progress:{prep:100,plant:83,monitor:61,sustain:27}},
+{name:'Kaliganj',trees:'0.8M',ndvi:0.67,progress:{prep:100,plant:87,monitor:64,sustain:31}},
+{name:'Shyamnagar',trees:'1.0M',ndvi:0.71,progress:{prep:100,plant:90,monitor:70,sustain:40}},
+{name:'Tala',trees:'0.7M',ndvi:0.64,progress:{prep:100,plant:84,monitor:62,sustain:28}}]},
+'Jessore':{color:'#3b82f6',division:'Khulna',trees:'5.2M',co2:0.26,ndvi:0.54,survival:72,coords:[23.1667,89.2166],upazilas:[
+{name:'Jessore Sadar',trees:'1.0M',ndvi:0.52,progress:{prep:100,plant:80,monitor:56,sustain:22}},
+{name:'Abhaynagar',trees:'0.6M',ndvi:0.54,progress:{prep:100,plant:80,monitor:56,sustain:22}},
+{name:'Bagherpara',trees:'0.5M',ndvi:0.55,progress:{prep:100,plant:81,monitor:57,sustain:23}},
+{name:'Chaugachha',trees:'0.6M',ndvi:0.53,progress:{prep:100,plant:80,monitor:56,sustain:22}},
+{name:'Jhikargachha',trees:'0.6M',ndvi:0.54,progress:{prep:100,plant:80,monitor:56,sustain:22}},
+{name:'Keshabpur',trees:'0.6M',ndvi:0.55,progress:{prep:100,plant:81,monitor:57,sustain:23}},
+{name:'Manirampur',trees:'0.7M',ndvi:0.55,progress:{prep:100,plant:81,monitor:57,sustain:23}},
+{name:'Sharsha',trees:'0.6M',ndvi:0.53,progress:{prep:100,plant:79,monitor:55,sustain:21}}]},
+'Jhenaidah':{color:'#3b82f6',division:'Khulna',trees:'4.1M',co2:0.21,ndvi:0.52,survival:71,coords:[23.5448,89.1539],upazilas:[
+{name:'Jhenaidah Sadar',trees:'1.0M',ndvi:0.51,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Harinakunda',trees:'0.5M',ndvi:0.53,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Kaliganj',trees:'0.7M',ndvi:0.54,progress:{prep:100,plant:81,monitor:56,sustain:22}},
+{name:'Kotchandpur',trees:'0.5M',ndvi:0.52,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Maheshpur',trees:'0.7M',ndvi:0.53,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Shailkupa',trees:'0.7M',ndvi:0.52,progress:{prep:100,plant:79,monitor:54,sustain:20}}]},
+'Magura':{color:'#3b82f6',division:'Khulna',trees:'2.8M',co2:0.14,ndvi:0.51,survival:70,coords:[23.4887,89.4193],upazilas:[
+{name:'Magura Sadar',trees:'0.9M',ndvi:0.50,progress:{prep:100,plant:78,monitor:53,sustain:19}},
+{name:'Mohammadpur',trees:'0.5M',ndvi:0.52,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Shalikha',trees:'0.5M',ndvi:0.51,progress:{prep:100,plant:78,monitor:53,sustain:19}},
+{name:'Sreepur',trees:'0.5M',ndvi:0.53,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Sreepur Sadar',trees:'0.4M',ndvi:0.52,progress:{prep:100,plant:79,monitor:54,sustain:20}}]},
+'Narail':{color:'#3b82f6',division:'Khulna',trees:'2.4M',co2:0.12,ndvi:0.53,survival:71,coords:[23.1724,89.5120],upazilas:[
+{name:'Narail Sadar',trees:'0.9M',ndvi:0.52,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Kalia',trees:'0.8M',ndvi:0.54,progress:{prep:100,plant:80,monitor:55,sustain:21}},
+{name:'Lohagara',trees:'0.7M',ndvi:0.53,progress:{prep:100,plant:80,monitor:54,sustain:20}}]},
+'Kushtia':{color:'#3b82f6',division:'Khulna',trees:'3.8M',co2:0.19,ndvi:0.50,survival:70,coords:[23.9014,89.1200],upazilas:[
+{name:'Kushtia Sadar',trees:'0.9M',ndvi:0.49,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Bheramara',trees:'0.5M',ndvi:0.51,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Daulatpur',trees:'0.6M',ndvi:0.50,progress:{prep:100,plant:78,monitor:53,sustain:19}},
+{name:'Khoksa',trees:'0.5M',ndvi:0.50,progress:{prep:100,plant:78,monitor:53,sustain:19}},
+{name:'Kumarkhali',trees:'0.6M',ndvi:0.51,progress:{prep:100,plant:79,monitor:54,sustain:20}},
+{name:'Mirpur',trees:'0.7M',ndvi:0.52,progress:{prep:100,plant:80,monitor:55,sustain:21}}]},
+'Meherpur':{color:'#3b82f6',division:'Khulna',trees:'1.8M',co2:0.09,ndvi:0.49,survival:69,coords:[23.7622,88.6317],upazilas:[
+{name:'Meherpur Sadar',trees:'0.8M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:17}},
+{name:'Gangni',trees:'0.6M',ndvi:0.50,progress:{prep:100,plant:78,monitor:53,sustain:19}},
+{name:'Mujibnagar',trees:'0.4M',ndvi:0.49,progress:{prep:100,plant:77,monitor:52,sustain:18}}]},
+'Chuadanga':{color:'#3b82f6',division:'Khulna',trees:'2.2M',co2:0.11,ndvi:0.48,survival:68,coords:[23.6401,88.8417],upazilas:[
+{name:'Chuadanga Sadar',trees:'0.7M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:16}},
+{name:'Alamdanga',trees:'0.5M',ndvi:0.49,progress:{prep:100,plant:78,monitor:52,sustain:18}},
+{name:'Damurhuda',trees:'0.5M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:17}},
+{name:'Jibannagar',trees:'0.5M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:17}}]},
+'Rajshahi':{color:'#10b981',division:'Rajshahi',trees:'4.8M',co2:0.22,ndvi:0.38,survival:64,coords:[24.3745,88.6042],upazilas:[
+{name:'Rajshahi Sadar',trees:'0.9M',ndvi:0.37,progress:{prep:100,plant:67,monitor:40,sustain:9}},
+{name:'Bagha',trees:'0.6M',ndvi:0.39,progress:{prep:100,plant:68,monitor:41,sustain:10}},
+{name:'Bagmara',trees:'0.7M',ndvi:0.40,progress:{prep:100,plant:70,monitor:43,sustain:11}},
+{name:'Charghat',trees:'0.5M',ndvi:0.37,progress:{prep:100,plant:66,monitor:39,sustain:8}},
+{name:'Durgapur',trees:'0.5M',ndvi:0.38,progress:{prep:100,plant:67,monitor:40,sustain:9}},
+{name:'Godagari',trees:'0.7M',ndvi:0.41,progress:{prep:100,plant:71,monitor:44,sustain:12}},
+{name:'Mohanpur',trees:'0.4M',ndvi:0.36,progress:{prep:100,plant:65,monitor:38,sustain:7}},
+{name:'Paba',trees:'0.5M',ndvi:0.35,progress:{prep:100,plant:63,monitor:36,sustain:6}},
+{name:'Puthia',trees:'0.5M',ndvi:0.38,progress:{prep:100,plant:67,monitor:40,sustain:9}},
+{name:'Tanore',trees:'0.5M',ndvi:0.36,progress:{prep:100,plant:65,monitor:38,sustain:7}}]},
+'Chapai Nawabganj':{color:'#10b981',division:'Rajshahi',trees:'3.6M',co2:0.17,ndvi:0.40,survival:65,coords:[24.7414,88.2912],upazilas:[
+{name:'Chapai Nawabganj Sadar',trees:'0.9M',ndvi:0.39,progress:{prep:100,plant:68,monitor:41,sustain:10}},
+{name:'Bholahat',trees:'0.4M',ndvi:0.41,progress:{prep:100,plant:70,monitor:43,sustain:12}},
+{name:'Gomastapur',trees:'0.7M',ndvi:0.40,progress:{prep:100,plant:69,monitor:42,sustain:11}},
+{name:'Nachole',trees:'0.6M',ndvi:0.39,progress:{prep:100,plant:68,monitor:41,sustain:10}},
+{name:'Shibganj',trees:'1.0M',ndvi:0.42,progress:{prep:100,plant:71,monitor:44,sustain:13}}]},
+'Natore':{color:'#10b981',division:'Rajshahi',trees:'4.2M',co2:0.19,ndvi:0.44,survival:67,coords:[24.4179,88.9880],upazilas:[
+{name:'Natore Sadar',trees:'1.0M',ndvi:0.43,progress:{prep:100,plant:72,monitor:45,sustain:13}},
+{name:'Bagatipara',trees:'0.5M',ndvi:0.44,progress:{prep:100,plant:73,monitor:46,sustain:14}},
+{name:'Baraigram',trees:'0.7M',ndvi:0.45,progress:{prep:100,plant:74,monitor:47,sustain:15}},
+{name:'Gurudaspur',trees:'0.6M',ndvi:0.44,progress:{prep:100,plant:73,monitor:46,sustain:14}},
+{name:'Lalpur',trees:'0.6M',ndvi:0.44,progress:{prep:100,plant:73,monitor:46,sustain:14}},
+{name:'Singra',trees:'0.8M',ndvi:0.45,progress:{prep:100,plant:74,monitor:47,sustain:15}}]},
+'Naogaon':{color:'#10b981',division:'Rajshahi',trees:'5.4M',co2:0.26,ndvi:0.46,survival:68,coords:[24.8130,88.9399],upazilas:[
+{name:'Naogaon Sadar',trees:'1.1M',ndvi:0.45,progress:{prep:100,plant:74,monitor:48,sustain:15}},
+{name:'Atrai',trees:'0.6M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:17}},
+{name:'Badalgachhi',trees:'0.5M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:16}},
+{name:'Manda',trees:'0.6M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:16}},
+{name:'Mahadebpur',trees:'0.7M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:17}},
+{name:'Niamatpur',trees:'0.6M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:16}},
+{name:'Patnitala',trees:'0.5M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:17}},
+{name:'Porsha',trees:'0.4M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:16}},
+{name:'Raninagar',trees:'0.4M',ndvi:0.45,progress:{prep:100,plant:74,monitor:48,sustain:15}},
+{name:'Sapahar',trees:'0.5M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:18}},
+{name:'Mohadevpur',trees:'0.5M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:16}}]},
+'Pabna':{color:'#10b981',division:'Rajshahi',trees:'4.4M',co2:0.21,ndvi:0.47,survival:69,coords:[24.0063,89.2372],upazilas:[
+{name:'Pabna Sadar',trees:'1.0M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:16}},
+{name:'Atgharia',trees:'0.5M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:18}},
+{name:'Bera',trees:'0.6M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:18}},
+{name:'Bhangura',trees:'0.4M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:17}},
+{name:'Chatmohar',trees:'0.5M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:17}},
+{name:'Faridpur',trees:'0.4M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:16}},
+{name:'Ishwardi',trees:'0.6M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:18}},
+{name:'Santhia',trees:'0.5M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:17}},
+{name:'Sujanagar',trees:'0.5M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:16}}]},
+'Sirajganj':{color:'#10b981',division:'Rajshahi',trees:'4.8M',co2:0.23,ndvi:0.48,survival:70,coords:[24.4534,89.7006],upazilas:[
+{name:'Sirajganj Sadar',trees:'1.0M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:17}},
+{name:'Belkuchi',trees:'0.5M',ndvi:0.49,progress:{prep:100,plant:78,monitor:52,sustain:19}},
+{name:'Chauhali',trees:'0.4M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:18}},
+{name:'Kamarkhanda',trees:'0.4M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:17}},
+{name:'Kazipur',trees:'0.5M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:16}},
+{name:'Raiganj',trees:'0.6M',ndvi:0.49,progress:{prep:100,plant:78,monitor:52,sustain:19}},
+{name:'Shahjadpur',trees:'0.7M',ndvi:0.50,progress:{prep:100,plant:79,monitor:53,sustain:20}},
+{name:'Tarash',trees:'0.4M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:18}},
+{name:'Ullahpara',trees:'0.5M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:18}}]},
+'Rangpur':{color:'#f97316',division:'Rangpur',trees:'4.6M',co2:0.22,ndvi:0.45,survival:70,coords:[25.7439,89.2752],upazilas:[
+{name:'Rangpur Sadar',trees:'1.0M',ndvi:0.43,progress:{prep:100,plant:72,monitor:46,sustain:16}},
+{name:'Badarganj',trees:'0.6M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:19}},
+{name:'Gangachhara',trees:'0.6M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:20}},
+{name:'Kaunia',trees:'0.5M',ndvi:0.44,progress:{prep:100,plant:73,monitor:47,sustain:17}},
+{name:'Mithapukur',trees:'0.8M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:19}},
+{name:'Pirgachha',trees:'0.5M',ndvi:0.45,progress:{prep:100,plant:74,monitor:48,sustain:18}},
+{name:'Pirganj',trees:'0.6M',ndvi:0.48,progress:{prep:100,plant:77,monitor:52,sustain:22}},
+{name:'Taraganj',trees:'0.4M',ndvi:0.44,progress:{prep:100,plant:73,monitor:47,sustain:17}}]},
+'Dinajpur':{color:'#f97316',division:'Rangpur',trees:'5.2M',co2:0.26,ndvi:0.50,survival:72,coords:[25.6279,88.6338],upazilas:[
+{name:'Dinajpur Sadar',trees:'1.1M',ndvi:0.49,progress:{prep:100,plant:78,monitor:53,sustain:20}},
+{name:'Birampur',trees:'0.4M',ndvi:0.51,progress:{prep:100,plant:80,monitor:55,sustain:22}},
+{name:'Birganj',trees:'0.5M',ndvi:0.50,progress:{prep:100,plant:79,monitor:54,sustain:21}},
+{name:'Bochaganj',trees:'0.4M',ndvi:0.50,progress:{prep:100,plant:79,monitor:54,sustain:21}},
+{name:'Chirirbandar',trees:'0.5M',ndvi:0.49,progress:{prep:100,plant:78,monitor:53,sustain:20}},
+{name:'Fulbari',trees:'0.4M',ndvi:0.51,progress:{prep:100,plant:80,monitor:55,sustain:22}},
+{name:'Ghoraghat',trees:'0.3M',ndvi:0.52,progress:{prep:100,plant:81,monitor:56,sustain:23}},
+{name:'Hakimpur',trees:'0.3M',ndvi:0.50,progress:{prep:100,plant:79,monitor:54,sustain:21}},
+{name:'Kaharole',trees:'0.4M',ndvi:0.50,progress:{prep:100,plant:79,monitor:54,sustain:21}},
+{name:'Khansama',trees:'0.4M',ndvi:0.49,progress:{prep:100,plant:78,monitor:53,sustain:20}},
+{name:'Nawabganj',trees:'0.5M',ndvi:0.51,progress:{prep:100,plant:80,monitor:55,sustain:22}},
+{name:'Parbatipur',trees:'0.5M',ndvi:0.50,progress:{prep:100,plant:79,monitor:54,sustain:21}}]},
+'Gaibandha':{color:'#f97316',division:'Rangpur',trees:'4.0M',co2:0.19,ndvi:0.46,survival:69,coords:[25.3289,89.5289],upazilas:[
+{name:'Gaibandha Sadar',trees:'0.9M',ndvi:0.45,progress:{prep:100,plant:74,monitor:48,sustain:16}},
+{name:'Fulchhari',trees:'0.4M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:17}},
+{name:'Gobindaganj',trees:'0.8M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:18}},
+{name:'Palashbari',trees:'0.5M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:17}},
+{name:'Sadullapur',trees:'0.5M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:17}},
+{name:'Saghata',trees:'0.4M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:18}},
+{name:'Sundarganj',trees:'0.5M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:18}}]},
+'Kurigram':{color:'#f97316',division:'Rangpur',trees:'3.8M',co2:0.18,ndvi:0.47,survival:68,coords:[25.8052,89.6362],upazilas:[
+{name:'Kurigram Sadar',trees:'0.9M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:17}},
+{name:'Bhurungamari',trees:'0.5M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:19}},
+{name:'Chilmari',trees:'0.4M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:17}},
+{name:'Nageshwari',trees:'0.6M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:18}},
+{name:'Phulbari',trees:'0.4M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:19}},
+{name:'Rajarhat',trees:'0.4M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:17}},
+{name:'Raumari',trees:'0.3M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:18}},
+{name:'Ulipur',trees:'0.6M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:19}},
+{name:'Char Rajibpur',trees:'0.3M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:18}}]},
+'Lalmonirhat':{color:'#f97316',division:'Rangpur',trees:'3.2M',co2:0.15,ndvi:0.46,survival:68,coords:[25.9923,89.3351],upazilas:[
+{name:'Lalmonirhat Sadar',trees:'0.8M',ndvi:0.45,progress:{prep:100,plant:74,monitor:48,sustain:16}},
+{name:'Aditmari',trees:'0.5M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:17}},
+{name:'Hatibandha',trees:'0.6M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:18}},
+{name:'Kaliganj',trees:'0.5M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:17}},
+{name:'Patgram',trees:'0.8M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:19}}]},
+'Nilphamari':{color:'#f97316',division:'Rangpur',trees:'3.6M',co2:0.17,ndvi:0.47,survival:69,coords:[25.9319,88.8560],upazilas:[
+{name:'Nilphamari Sadar',trees:'0.8M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:17}},
+{name:'Dimla',trees:'0.5M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:19}},
+{name:'Domar',trees:'0.5M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:18}},
+{name:'Jaldhaka',trees:'0.6M',ndvi:0.48,progress:{prep:100,plant:77,monitor:51,sustain:19}},
+{name:'Kishoreganj',trees:'0.4M',ndvi:0.47,progress:{prep:100,plant:76,monitor:50,sustain:18}},
+{name:'Saidpur',trees:'0.8M',ndvi:0.46,progress:{prep:100,plant:75,monitor:49,sustain:17}}]},
+'Panchagarh':{color:'#f97316',division:'Rangpur',trees:'2.4M',co2:0.12,ndvi:0.52,survival:72,coords:[26.3408,88.5547],upazilas:[
+{name:'Panchagarh Sadar',trees:'0.7M',ndvi:0.51,progress:{prep:100,plant:80,monitor:55,sustain:22}},
+{name:'Atwari',trees:'0.4M',ndvi:0.52,progress:{prep:100,plant:81,monitor:56,sustain:23}},
+{name:'Boda',trees:'0.5M',ndvi:0.53,progress:{prep:100,plant:82,monitor:57,sustain:24}},
+{name:'Debiganj',trees:'0.5M',ndvi:0.52,progress:{prep:100,plant:81,monitor:56,sustain:23}},
+{name:'Tetulia',trees:'0.3M',ndvi:0.54,progress:{prep:100,plant:83,monitor:58,sustain:25}}]},
+'Thakurgaon':{color:'#f97316',division:'Rangpur',trees:'3.0M',co2:0.14,ndvi:0.50,survival:71,coords:[26.0336,88.4584],upazilas:[
+{name:'Thakurgaon Sadar',trees:'0.9M',ndvi:0.49,progress:{prep:100,plant:78,monitor:52,sustain:19}},
+{name:'Baliadangi',trees:'0.5M',ndvi:0.51,progress:{prep:100,plant:80,monitor:54,sustain:21}},
+{name:'Haripur',trees:'0.4M',ndvi:0.50,progress:{prep:100,plant:79,monitor:53,sustain:20}},
+{name:'Pirganj',trees:'0.7M',ndvi:0.51,progress:{prep:100,plant:80,monitor:54,sustain:21}},
+{name:'Ranisankail',trees:'0.5M',ndvi:0.50,progress:{prep:100,plant:79,monitor:53,sustain:20}}]},
+'Barisal':{color:'#8b5cf6',division:'Barisal',trees:'5.2M',co2:0.26,ndvi:0.55,survival:73,coords:[22.7010,90.3535],upazilas:[
+{name:'Barisal Sadar',trees:'1.1M',ndvi:0.53,progress:{prep:100,plant:80,monitor:56,sustain:22}},
+{name:'Agailjhara',trees:'0.6M',ndvi:0.57,progress:{prep:100,plant:82,monitor:59,sustain:25}},
+{name:'Babuganj',trees:'0.5M',ndvi:0.55,progress:{prep:100,plant:80,monitor:57,sustain:23}},
+{name:'Bakerganj',trees:'0.7M',ndvi:0.56,progress:{prep:100,plant:81,monitor:58,sustain:24}},
+{name:'Banaripara',trees:'0.5M',ndvi:0.54,progress:{prep:100,plant:79,monitor:56,sustain:22}},
+{name:'Gaurnadi',trees:'0.5M',ndvi:0.55,progress:{prep:100,plant:80,monitor:57,sustain:23}},
+{name:'Hizla',trees:'0.4M',ndvi:0.56,progress:{prep:100,plant:81,monitor:58,sustain:24}},
+{name:'Mehendiganj',trees:'0.5M',ndvi:0.57,progress:{prep:100,plant:82,monitor:59,sustain:25}},
+{name:'Muladi',trees:'0.4M',ndvi:0.55,progress:{prep:100,plant:80,monitor:57,sustain:23}},
+{name:'Wazirpur',trees:'0.5M',ndvi:0.54,progress:{prep:100,plant:79,monitor:56,sustain:22}}]},
+'Bhola':{color:'#8b5cf6',division:'Barisal',trees:'4.2M',co2:0.21,ndvi:0.58,survival:72,coords:[22.6859,90.6482],upazilas:[
+{name:'Bhola Sadar',trees:'1.0M',ndvi:0.57,progress:{prep:100,plant:81,monitor:58,sustain:24}},
+{name:'Burhanuddin',trees:'0.5M',ndvi:0.59,progress:{prep:100,plant:83,monitor:60,sustain:26}},
+{name:'Char Fasson',trees:'0.7M',ndvi:0.60,progress:{prep:100,plant:84,monitor:61,sustain:27}},
+{name:'Daulatkhan',trees:'0.5M',ndvi:0.58,progress:{prep:100,plant:82,monitor:59,sustain:25}},
+{name:'Lalmohan',trees:'0.5M',ndvi:0.57,progress:{prep:100,plant:81,monitor:58,sustain:24}},
+{name:'Manpura',trees:'0.5M',ndvi:0.59,progress:{prep:100,plant:83,monitor:60,sustain:26}},
+{name:'Tazumuddin',trees:'0.5M',ndvi:0.58,progress:{prep:100,plant:82,monitor:59,sustain:25}}]},
+'Jhalokati':{color:'#8b5cf6',division:'Barisal',trees:'2.2M',co2:0.11,ndvi:0.56,survival:72,coords:[22.6362,90.1987],upazilas:[
+{name:'Jhalokati Sadar',trees:'0.7M',ndvi:0.55,progress:{prep:100,plant:80,monitor:57,sustain:23}},
+{name:'Kathalia',trees:'0.5M',ndvi:0.57,progress:{prep:100,plant:82,monitor:59,sustain:25}},
+{name:'Nalchity',trees:'0.5M',ndvi:0.56,progress:{prep:100,plant:81,monitor:58,sustain:24}},
+{name:'Rajapur',trees:'0.5M',ndvi:0.57,progress:{prep:100,plant:82,monitor:59,sustain:25}}]},
+'Patuakhali':{color:'#8b5cf6',division:'Barisal',trees:'4.0M',co2:0.20,ndvi:0.60,survival:74,coords:[22.3596,90.3298],upazilas:[
+{name:'Patuakhali Sadar',trees:'0.9M',ndvi:0.59,progress:{prep:100,plant:83,monitor:60,sustain:26}},
+{name:'Bauphal',trees:'0.6M',ndvi:0.61,progress:{prep:100,plant:85,monitor:62,sustain:28}},
+{name:'Dashmina',trees:'0.5M',ndvi:0.60,progress:{prep:100,plant:84,monitor:61,sustain:27}},
+{name:'Dumki',trees:'0.4M',ndvi:0.59,progress:{prep:100,plant:83,monitor:60,sustain:26}},
+{name:'Galachipa',trees:'0.7M',ndvi:0.62,progress:{prep:100,plant:86,monitor:63,sustain:29}},
+{name:'Kalapara',trees:'0.5M',ndvi:0.61,progress:{prep:100,plant:85,monitor:62,sustain:28}},
+{name:'Mirzaganj',trees:'0.4M',ndvi:0.59,progress:{prep:100,plant:83,monitor:60,sustain:26}}]},
+'Pirojpur':{color:'#8b5cf6',division:'Barisal',trees:'3.2M',co2:0.16,ndvi:0.58,survival:73,coords:[22.5792,89.9745],upazilas:[
+{name:'Pirojpur Sadar',trees:'0.8M',ndvi:0.57,progress:{prep:100,plant:82,monitor:59,sustain:25}},
+{name:'Bhandaria',trees:'0.5M',ndvi:0.59,progress:{prep:100,plant:84,monitor:61,sustain:27}},
+{name:'Kaukhali',trees:'0.4M',ndvi:0.58,progress:{prep:100,plant:83,monitor:60,sustain:26}},
+{name:'Mathbaria',trees:'0.6M',ndvi:0.59,progress:{prep:100,plant:84,monitor:61,sustain:27}},
+{name:'Nazirpur',trees:'0.5M',ndvi:0.58,progress:{prep:100,plant:83,monitor:60,sustain:26}},
+{name:'Nesarabad',trees:'0.4M',ndvi:0.57,progress:{prep:100,plant:82,monitor:59,sustain:25}}]},
+'Barguna':{color:'#8b5cf6',division:'Barisal',trees:'2.8M',co2:0.14,ndvi:0.61,survival:74,coords:[22.1500,90.1166],upazilas:[
+{name:'Barguna Sadar',trees:'0.8M',ndvi:0.60,progress:{prep:100,plant:84,monitor:61,sustain:27}},
+{name:'Amtali',trees:'0.6M',ndvi:0.62,progress:{prep:100,plant:86,monitor:63,sustain:29}},
+{name:'Bamna',trees:'0.4M',ndvi:0.61,progress:{prep:100,plant:85,monitor:62,sustain:28}},
+{name:'Betagi',trees:'0.4M',ndvi:0.61,progress:{prep:100,plant:85,monitor:62,sustain:28}},
+{name:'Patharghata',trees:'0.6M',ndvi:0.63,progress:{prep:100,plant:87,monitor:64,sustain:30}}]},
+'Sylhet':{color:'#ec4899',division:'Sylhet',trees:'5.8M',co2:0.28,ndvi:0.63,survival:77,coords:[24.8949,91.8687],upazilas:[
+{name:'Sylhet Sadar',trees:'1.1M',ndvi:0.60,progress:{prep:100,plant:83,monitor:62,sustain:30}},
+{name:'Balaganj',trees:'0.5M',ndvi:0.64,progress:{prep:100,plant:86,monitor:65,sustain:33}},
+{name:'Beanibazar',trees:'0.5M',ndvi:0.63,progress:{prep:100,plant:85,monitor:64,sustain:32}},
+{name:'Bishwanath',trees:'0.4M',ndvi:0.62,progress:{prep:100,plant:84,monitor:63,sustain:31}},
+{name:'Companiganj',trees:'0.5M',ndvi:0.64,progress:{prep:100,plant:86,monitor:65,sustain:33}},
+{name:'Fenchuganj',trees:'0.3M',ndvi:0.62,progress:{prep:100,plant:84,monitor:63,sustain:31}},
+{name:'Golapganj',trees:'0.5M',ndvi:0.63,progress:{prep:100,plant:85,monitor:64,sustain:32}},
+{name:'Gowainghat',trees:'0.6M',ndvi:0.72,progress:{prep:100,plant:91,monitor:74,sustain:42}},
+{name:'Jaintiapur',trees:'0.5M',ndvi:0.68,progress:{prep:100,plant:88,monitor:70,sustain:38}},
+{name:'Kanaighat',trees:'0.4M',ndvi:0.66,progress:{prep:100,plant:87,monitor:68,sustain:36}},
+{name:'Osmani Nagar',trees:'0.5M',ndvi:0.60,progress:{prep:100,plant:83,monitor:62,sustain:30}},
+{name:'South Surma',trees:'0.5M',ndvi:0.61,progress:{prep:100,plant:84,monitor:63,sustain:31}},
+{name:'Zakiganj',trees:'0.5M',ndvi:0.65,progress:{prep:100,plant:87,monitor:66,sustain:34}}]},
+'Moulvibazar':{color:'#ec4899',division:'Sylhet',trees:'4.8M',co2:0.24,ndvi:0.68,survival:78,coords:[24.4826,91.7774],upazilas:[
+{name:'Moulvibazar Sadar',trees:'1.0M',ndvi:0.66,progress:{prep:100,plant:87,monitor:67,sustain:35}},
+{name:'Barlekha',trees:'0.6M',ndvi:0.69,progress:{prep:100,plant:89,monitor:70,sustain:38}},
+{name:'Juri',trees:'0.5M',ndvi:0.70,progress:{prep:100,plant:90,monitor:71,sustain:39}},
+{name:'Kamalganj',trees:'0.6M',ndvi:0.68,progress:{prep:100,plant:88,monitor:69,sustain:37}},
+{name:'Kulaura',trees:'0.8M',ndvi:0.70,progress:{prep:100,plant:90,monitor:71,sustain:39}},
+{name:'Rajnagar',trees:'0.5M',ndvi:0.68,progress:{prep:100,plant:88,monitor:69,sustain:37}},
+{name:'Sreemangal',trees:'0.8M',ndvi:0.72,progress:{prep:100,plant:91,monitor:74,sustain:42}}]},
+'Habiganj':{color:'#ec4899',division:'Sylhet',trees:'4.4M',co2:0.22,ndvi:0.65,survival:76,coords:[24.3745,91.4156],upazilas:[
+{name:'Habiganj Sadar',trees:'1.0M',ndvi:0.63,progress:{prep:100,plant:85,monitor:65,sustain:33}},
+{name:'Ajmiriganj',trees:'0.4M',ndvi:0.65,progress:{prep:100,plant:87,monitor:67,sustain:35}},
+{name:'Bahubal',trees:'0.5M',ndvi:0.66,progress:{prep:100,plant:88,monitor:68,sustain:36}},
+{name:'Baniachong',trees:'0.7M',ndvi:0.64,progress:{prep:100,plant:86,monitor:66,sustain:34}},
+{name:'Chunarughat',trees:'0.6M',ndvi:0.67,progress:{prep:100,plant:88,monitor:68,sustain:36}},
+{name:'Lakhai',trees:'0.4M',ndvi:0.64,progress:{prep:100,plant:86,monitor:66,sustain:34}},
+{name:'Madhabpur',trees:'0.5M',ndvi:0.65,progress:{prep:100,plant:87,monitor:67,sustain:35}},
+{name:'Nabiganj',trees:'0.6M',ndvi:0.66,progress:{prep:100,plant:88,monitor:68,sustain:36}},
+{name:'Shayestaganj',trees:'0.7M',ndvi:0.65,progress:{prep:100,plant:87,monitor:67,sustain:35}}]},
+'Sunamganj':{color:'#ec4899',division:'Sylhet',trees:'5.2M',co2:0.26,ndvi:0.66,survival:75,coords:[25.0655,91.3951],upazilas:[
+{name:'Sunamganj Sadar',trees:'1.1M',ndvi:0.64,progress:{prep:100,plant:86,monitor:66,sustain:34}},
+{name:'Bishwambarpur',trees:'0.4M',ndvi:0.67,progress:{prep:100,plant:88,monitor:68,sustain:36}},
+{name:'Chhatak',trees:'0.5M',ndvi:0.65,progress:{prep:100,plant:87,monitor:67,sustain:35}},
+{name:'Derai',trees:'0.5M',ndvi:0.66,progress:{prep:100,plant:88,monitor:68,sustain:36}},
+{name:'Dharampasha',trees:'0.4M',ndvi:0.67,progress:{prep:100,plant:89,monitor:69,sustain:37}},
+{name:'Dowarabazar',trees:'0.4M',ndvi:0.68,progress:{prep:100,plant:89,monitor:70,sustain:38}},
+{name:'Jagannathpur',trees:'0.5M',ndvi:0.65,progress:{prep:100,plant:87,monitor:67,sustain:35}},
+{name:'Jamalganj',trees:'0.4M',ndvi:0.67,progress:{prep:100,plant:88,monitor:68,sustain:36}},
+{name:'Sulla',trees:'0.4M',ndvi:0.68,progress:{prep:100,plant:89,monitor:70,sustain:38}},
+{name:'Tahirpur',trees:'0.5M',ndvi:0.67,progress:{prep:100,plant:88,monitor:68,sustain:36}},
+{name:'Shalla',trees:'0.5M',ndvi:0.66,progress:{prep:100,plant:87,monitor:67,sustain:35}}]},
+'Mymensingh':{color:'#06b6d4',division:'Mymensingh',trees:'5.8M',co2:0.28,ndvi:0.58,survival:75,coords:[24.7471,90.4203],upazilas:[
+{name:'Mymensingh Sadar',trees:'1.2M',ndvi:0.55,progress:{prep:100,plant:80,monitor:58,sustain:24}},
+{name:'Bhaluka',trees:'0.7M',ndvi:0.58,progress:{prep:100,plant:82,monitor:61,sustain:27}},
+{name:'Dhobaura',trees:'0.4M',ndvi:0.61,progress:{prep:100,plant:85,monitor:64,sustain:32}},
+{name:'Fulbaria',trees:'0.5M',ndvi:0.57,progress:{prep:100,plant:81,monitor:60,sustain:26}},
+{name:'Gaffargaon',trees:'0.6M',ndvi:0.56,progress:{prep:100,plant:80,monitor:59,sustain:25}},
+{name:'Gauripur',trees:'0.5M',ndvi:0.57,progress:{prep:100,plant:81,monitor:60,sustain:26}},
+{name:'Haluaghat',trees:'0.5M',ndvi:0.64,progress:{prep:100,plant:86,monitor:66,sustain:34}},
+{name:'Ishwarganj',trees:'0.5M',ndvi:0.56,progress:{prep:100,plant:80,monitor:59,sustain:25}},
+{name:'Muktagacha',trees:'0.5M',ndvi:0.55,progress:{prep:100,plant:79,monitor:58,sustain:24}},
+{name:'Nandail',trees:'0.5M',ndvi:0.57,progress:{prep:100,plant:81,monitor:60,sustain:26}},
+{name:'Phulpur',trees:'0.6M',ndvi:0.58,progress:{prep:100,plant:82,monitor:61,sustain:27}},
+{name:'Trishal',trees:'0.6M',ndvi:0.57,progress:{prep:100,plant:81,monitor:60,sustain:26}},
+{name:'Tarakanda',trees:'0.4M',ndvi:0.59,progress:{prep:100,plant:83,monitor:62,sustain:28}}]},
+'Jamalpur':{color:'#06b6d4',division:'Mymensingh',trees:'4.2M',co2:0.20,ndvi:0.54,survival:72,coords:[24.9049,89.9378],upazilas:[
+{name:'Jamalpur Sadar',trees:'1.1M',ndvi:0.53,progress:{prep:100,plant:79,monitor:57,sustain:23}},
+{name:'Bakshiganj',trees:'0.5M',ndvi:0.55,progress:{prep:100,plant:81,monitor:59,sustain:25}},
+{name:'Dewanganj',trees:'0.5M',ndvi:0.54,progress:{prep:100,plant:80,monitor:58,sustain:24}},
+{name:'Islampur',trees:'0.6M',ndvi:0.55,progress:{prep:100,plant:81,monitor:59,sustain:25}},
+{name:'Madarganj',trees:'0.4M',ndvi:0.53,progress:{prep:100,plant:79,monitor:57,sustain:23}},
+{name:'Melandaha',trees:'0.5M',ndvi:0.54,progress:{prep:100,plant:80,monitor:58,sustain:24}},
+{name:'Sarishabari',trees:'0.6M',ndvi:0.55,progress:{prep:100,plant:81,monitor:59,sustain:25}}]},
+'Netrokona':{color:'#06b6d4',division:'Mymensingh',trees:'3.8M',co2:0.18,ndvi:0.60,survival:74,coords:[24.8703,90.7274],upazilas:[
+{name:'Netrokona Sadar',trees:'0.9M',ndvi:0.58,progress:{prep:100,plant:82,monitor:61,sustain:27}},
+{name:'Atpara',trees:'0.4M',ndvi:0.60,progress:{prep:100,plant:84,monitor:63,sustain:29}},
+{name:'Barhatta',trees:'0.4M',ndvi:0.61,progress:{prep:100,plant:85,monitor:64,sustain:30}},
+{name:'Durgapur',trees:'0.4M',ndvi:0.62,progress:{prep:100,plant:86,monitor:65,sustain:31}},
+{name:'Kalmakanda',trees:'0.4M',ndvi:0.63,progress:{prep:100,plant:87,monitor:66,sustain:32}},
+{name:'Kendua',trees:'0.5M',ndvi:0.60,progress:{prep:100,plant:84,monitor:63,sustain:29}},
+{name:'Khaliajuri',trees:'0.3M',ndvi:0.61,progress:{prep:100,plant:85,monitor:64,sustain:30}},
+{name:'Madan',trees:'0.4M',ndvi:0.60,progress:{prep:100,plant:84,monitor:63,sustain:29}},
+{name:'Mohanganj',trees:'0.4M',ndvi:0.59,progress:{prep:100,plant:83,monitor:62,sustain:28}},
+{name:'Purbadhala',trees:'0.4M',ndvi:0.61,progress:{prep:100,plant:85,monitor:64,sustain:30}}]},
+'Kishoreganj':{color:'#06b6d4',division:'Mymensingh',trees:'4.4M',co2:0.21,ndvi:0.55,survival:72,coords:[24.4449,90.7766],upazilas:[
+{name:'Kishoreganj Sadar',trees:'1.0M',ndvi:0.53,progress:{prep:100,plant:79,monitor:57,sustain:23}},
+{name:'Austagram',trees:'0.4M',ndvi:0.56,progress:{prep:100,plant:82,monitor:60,sustain:26}},
+{name:'Bajitpur',trees:'0.5M',ndvi:0.55,progress:{prep:100,plant:81,monitor:59,sustain:25}},
+{name:'Bhairab',trees:'0.5M',ndvi:0.54,progress:{prep:100,plant:80,monitor:58,sustain:24}},
+{name:'Hossainpur',trees:'0.4M',ndvi:0.55,progress:{prep:100,plant:81,monitor:59,sustain:25}},
+{name:'Itna',trees:'0.3M',ndvi:0.57,progress:{prep:100,plant:83,monitor:61,sustain:27}},
+{name:'Karimganj',trees:'0.4M',ndvi:0.55,progress:{prep:100,plant:81,monitor:59,sustain:25}},
+{name:'Katiadi',trees:'0.4M',ndvi:0.55,progress:{prep:100,plant:81,monitor:59,sustain:25}},
+{name:'Kuliarchar',trees:'0.3M',ndvi:0.56,progress:{prep:100,plant:82,monitor:60,sustain:26}},
+{name:'Mithamain',trees:'0.3M',ndvi:0.57,progress:{prep:100,plant:83,monitor:61,sustain:27}},
+{name:'Nikli',trees:'0.3M',ndvi:0.57,progress:{prep:100,plant:83,monitor:61,sustain:27}},
+{name:'Pakundia',trees:'0.4M',ndvi:0.55,progress:{prep:100,plant:81,monitor:59,sustain:25}},
+{name:'Tarail',trees:'0.2M',ndvi:0.54,progress:{prep:100,plant:80,monitor:58,sustain:24}}]},
+'Tangail':{color:'#06b6d4',division:'Mymensingh',trees:'5.2M',co2:0.25,ndvi:0.56,survival:73,coords:[24.2513,89.9167],upazilas:[
+{name:'Tangail Sadar',trees:'1.1M',ndvi:0.54,progress:{prep:100,plant:80,monitor:58,sustain:24}},
+{name:'Basail',trees:'0.4M',ndvi:0.57,progress:{prep:100,plant:82,monitor:60,sustain:26}},
+{name:'Bhuapur',trees:'0.4M',ndvi:0.56,progress:{prep:100,plant:81,monitor:59,sustain:25}},
+{name:'Delduar',trees:'0.4M',ndvi:0.55,progress:{prep:100,plant:80,monitor:58,sustain:24}},
+{name:'Ghatail',trees:'0.5M',ndvi:0.58,progress:{prep:100,plant:83,monitor:61,sustain:27}},
+{name:'Gopalpur',trees:'0.4M',ndvi:0.57,progress:{prep:100,plant:82,monitor:60,sustain:26}},
+{name:'Kalihati',trees:'0.5M',ndvi:0.56,progress:{prep:100,plant:81,monitor:59,sustain:25}},
+{name:'Madhupur',trees:'0.7M',ndvi:0.62,progress:{prep:100,plant:87,monitor:66,sustain:34}},
+{name:'Mirzapur',trees:'0.5M',ndvi:0.55,progress:{prep:100,plant:80,monitor:58,sustain:24}},
+{name:'Nagarpur',trees:'0.4M',ndvi:0.55,progress:{prep:100,plant:80,monitor:58,sustain:24}},
+{name:'Sakhipur',trees:'0.5M',ndvi:0.58,progress:{prep:100,plant:83,monitor:61,sustain:27}},
+{name:'Dhanbari',trees:'0.3M',ndvi:0.57,progress:{prep:100,plant:82,monitor:60,sustain:26}}]},
+};
+
+const SPECIES_DB=[
+  {key:'mangrove',name:'Sundari Mangrove',sci:'Heritiera fomes',     type:'Mangrove',   biomass:680,co2Rate:8.4},
+  {key:'teak',    name:'Teak',            sci:'Tectona grandis',     type:'Timber',     biomass:520,co2Rate:5.2},
+  {key:'bamboo',  name:'Bamboo',          sci:'Bambusa vulgaris',    type:'Fast-Growth',biomass:180,co2Rate:12.1},
+  {key:'sal',     name:'Sal Tree',        sci:'Shorea robusta',      type:'Deciduous',  biomass:480,co2Rate:4.8},
+  {key:'jackfruit',name:'Jackfruit',      sci:'Artocarpus heteroph.',type:'Fruit',      biomass:390,co2Rate:3.9},
+  {key:'mahogany',name:'Mahogany',        sci:'Swietenia macrophylla',type:'Timber',    biomass:450,co2Rate:4.2},
+  {key:'neem',    name:'Neem',            sci:'Azadirachta indica',  type:'Medicinal',  biomass:320,co2Rate:3.1},
+  {key:'rain_tree',name:'Rain Tree',      sci:'Albizia saman',       type:'Shade',      biomass:580,co2Rate:6.8},
+];
+
+// ── PAGES ──────────────────────────────────
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  document.getElementById('appScroll').scrollTop=0;
+  if(id==='map'){
+    initMap();
+    // Force resize after page is visible in DOM
+    setTimeout(()=>{if(lMap)lMap.invalidateSize();},200);
+    setTimeout(()=>{if(lMap)lMap.invalidateSize();},600);
+  }
+  if(id==='carbon')renderCarbon();
+}
+
+// ── CLOCK ──────────────────────────────────
+function tick(){
+  const bdt=new Date(Date.now()+6*3600000);
+  const t=bdt.toUTCString().slice(17,22);
+  const sb=document.getElementById('sbTime');
+  const mu=document.getElementById('mapUpdated');
+  if(sb)sb.textContent=t+' BDT';
+  if(mu)mu.textContent='Updated: '+t;
+}
+tick();setInterval(tick,30000);
+
+// ── HOME CO2 CHART ──────────────────────────
+(function(){
+  const months=['J','F','M','A','M','J','J','A','S','O','N','D'];
+  const actual=[0.3,0.5,0.7,0.8,0.9,1.0,1.1,1.15,1.2,1.25,1.3,1.35];
+  const target=[0.4,0.6,0.7,0.8,0.9,1.0,1.05,1.1,1.15,1.2,1.25,1.3];
+  const mx=Math.max(...actual,...target);
+  const c=document.getElementById('co2Chart');
+  months.forEach((m,i)=>{
+    const col=document.createElement('div');
+    col.className='co2-bar-col';
+    col.innerHTML=`<div class="co2-bar-actual" style="height:${Math.round(actual[i]/mx*56)}px"></div>
+      <div class="co2-bar-target" style="height:${Math.round(target[i]/mx*56)}px;margin-top:1px"></div>
+      <span class="co2-month">${m}</span>`;
+    c.appendChild(col);
+  });
+})();
+
+// ── HOME DIVISION BARS ──────────────────────
+(function(){
+  const data=[
+    {n:'Chittagong',co2:1.8,c:'#f59e0b'},{n:'Dhaka',co2:1.2,c:'#ef4444'},
+    {n:'Khulna',co2:1.2,c:'#3b82f6'},{n:'Rajshahi',co2:0.95,c:'#10b981'},
+    {n:'Rangpur',co2:0.95,c:'#f97316'},{n:'Barisal',co2:0.95,c:'#8b5cf6'},
+    {n:'Sylhet',co2:0.65,c:'#ec4899'},{n:'Mymensingh',co2:0.65,c:'#06b6d4'},
+  ];
+  const mx=1.8;
+  const el=document.getElementById('divCO2Bars');
+  data.forEach(d=>{
+    el.innerHTML+=`<div style="display:flex;align-items:center;gap:8px">
+      <div style="width:75px;font-size:0.65rem;font-weight:600;flex-shrink:0">${d.n}</div>
+      <div style="flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
+        <div style="width:${Math.round(d.co2/mx*100)}%;height:100%;background:${d.c};border-radius:3px"></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:0.6rem;color:var(--acid);width:40px;text-align:right">${d.co2} Mt</div>
+    </div>`;
+  });
+})();
+
+// ══════════════════════════════════════════
+//  MAP — CIRCLE MARKERS + UPAZILA DRILL-DOWN
+//  Click Division → popup with all Upazilas
+//  (names, coords, NDVI, Carbon, Progress)
+// ══════════════════════════════════════════
+
+// ── REAL UPAZILA COORDINATES ───────────────
+// Each division has its upazilas with real lat/lng
+const UZ_COORDS = {
+  'Chittagong':{
+    'Chittagong Sadar':[22.3569,91.7832],'Rangunia':[22.482,92.075],'Sitakunda':[22.621,91.660],
+    'Mirsharai':[22.823,91.574],'Sandwip':[22.490,91.424],'Anwara':[22.272,91.870],
+    'Boalkhali':[22.360,92.038],'Patiya':[22.299,92.002],'Chandanaish':[22.240,92.046],
+    'Satkania':[22.093,92.065],'Lohagara':[22.057,92.101],'Banshkhali':[22.010,91.975],
+    'Fatikchhari':[22.668,91.779],'Hathazari':[22.453,91.812]},
+  "Cox's Bazar":{
+    "Cox's Bazar Sadar":[21.427,92.006],'Chakaria':[21.747,92.065],'Teknaf':[20.864,92.303],
+    'Ukhia':[21.213,92.119],'Maheshkhali':[21.612,91.973],'Kutubdia':[21.812,91.852],
+    'Pekua':[21.831,92.010],'Ramu':[21.452,92.118]},
+  'Bandarban':{
+    'Bandarban Sadar':[22.194,92.219],'Ruma':[21.950,92.346],'Rowangchhari':[22.038,92.398],
+    'Lama':[21.939,92.080],'Alikadam':[21.718,92.280],'Thanchi':[21.802,92.521],'Naikhongchhari':[21.539,92.252]},
+  'Rangamati':{
+    'Rangamati Sadar':[22.648,92.200],'Kaptai':[22.503,92.194],'Kawkhali':[22.523,92.031],
+    'Bagaichhari':[22.378,92.164],'Barkal':[22.644,92.640],'Belaichhari':[22.513,92.410],
+    'Jurachhari':[22.571,92.416],'Langadu':[22.960,92.431]},
+  'Khagrachhari':{
+    'Khagrachhari Sadar':[23.119,91.984],'Dighinala':[23.246,92.075],'Mahalchhari':[23.076,92.152],
+    'Matiranga':[23.082,91.869],'Ramgarh':[22.999,91.954],'Lakshmichhari':[22.971,92.175],
+    'Guimara':[23.063,91.834],'Manikchari':[22.853,91.905]},
+  'Feni':{
+    'Feni Sadar':[23.015,91.398],'Chhagalnaiya':[23.151,91.478],'Daganbhuiyan':[23.215,91.427],
+    'Parshuram':[23.191,91.379],'Sonagazi':[22.932,91.398],'Fulgazi':[23.108,91.440]},
+  'Lakshmipur':{
+    'Lakshmipur Sadar':[22.943,90.831],'Raipur':[23.057,90.862],'Ramganj':[23.141,90.749],
+    'Ramgati':[22.694,90.816],'Kamalnagar':[22.615,90.823]},
+  'Noakhali':{
+    'Noakhali Sadar':[22.870,91.100],'Begumganj':[23.081,91.032],'Companiganj':[22.836,91.259],
+    'Chatkhil':[23.041,91.151],'Hatiya':[22.390,91.098],'Senbagh':[23.073,91.161],
+    'Subarnachar':[22.601,91.218],'Kabirhat':[22.845,91.195]},
+  'Comilla':{
+    'Comilla Sadar':[23.461,91.181],'Barura':[23.332,91.000],'Brahmanpara':[23.622,91.122],
+    'Burichang':[23.576,91.067],'Chandina':[23.439,91.013],'Chauddagram':[23.258,91.220],
+    'Daudkandi':[23.590,90.794],'Debidwar':[23.671,90.858],'Homna':[23.703,90.877],
+    'Laksam':[23.237,91.133],'Meghna':[23.615,90.868],'Muradnagar':[23.531,91.009],
+    'Nangalkot':[23.188,91.266],'Titas':[23.620,90.925],'Monohorgonj':[23.350,91.136]},
+  'Brahmanbaria':{
+    'Brahmanbaria Sadar':[23.957,91.112],'Ashuganj':[23.997,90.980],'Bancharampur':[23.741,90.970],
+    'Bijoynagar':[23.926,91.276],'Kasba':[23.845,91.090],'Nabinagar':[23.747,91.078],
+    'Nasirnagar':[24.064,91.215],'Sarail':[24.013,91.203]},
+  'Dhaka':{
+    'Dhamrai':[23.906,90.195],'Dohar':[23.553,90.158],'Keraniganj':[23.712,90.364],
+    'Nawabganj':[23.633,90.041],'Savar':[23.858,90.267],'Tejgaon':[23.756,90.387],'Lalbagh':[23.722,90.386]},
+  'Gazipur':{
+    'Gazipur Sadar':[23.999,90.412],'Kaliakair':[24.071,90.195],'Kaliganj':[24.012,90.497],
+    'Kapasia':[24.127,90.591],'Sreepur':[24.192,90.478],'Tongi':[23.894,90.399]},
+  'Narayanganj':{
+    'Narayanganj Sadar':[23.623,90.499],'Araihazar':[23.703,90.672],'Bandar':[23.589,90.571],
+    'Rupganj':[23.768,90.619],'Sonargaon':[23.651,90.618]},
+  'Narsingdi':{
+    'Narsingdi Sadar':[23.932,90.715],'Belabo':[24.019,90.844],'Monohardi':[24.048,90.754],
+    'Palash':[23.985,90.680],'Raipura':[23.967,90.856],'Shibpur':[23.896,90.668]},
+  'Manikganj':{
+    'Manikganj Sadar':[23.863,90.008],'Daulatpur':[23.883,89.863],'Ghior':[23.885,89.978],
+    'Harirampur':[23.718,89.857],'Saturia':[23.884,90.065],'Shivalaya':[23.784,89.924],'Singair':[23.840,90.104]},
+  'Munshiganj':{
+    'Munshiganj Sadar':[23.542,90.530],'Gazaria':[23.516,90.651],'Lohajang':[23.481,90.388],
+    'Sirajdikhan':[23.478,90.483],'Sreenagar':[23.455,90.422],'Tongibari':[23.480,90.528]},
+  'Madaripur':{
+    'Madaripur Sadar':[23.164,90.199],'Kalkini':[23.039,90.232],'Rajoir':[23.062,90.085],'Shibchar':[23.236,90.001]},
+  'Shariatpur':{
+    'Shariatpur Sadar':[23.242,90.435],'Bhedarganj':[23.175,90.515],'Damudya':[23.244,90.343],
+    'Gosairhat':[23.139,90.594],'Naria':[23.306,90.474],'Zanjira':[23.317,90.542]},
+  'Faridpur':{
+    'Faridpur Sadar':[23.607,89.843],'Boalmari':[23.458,89.700],'Alfadanga':[23.521,89.669],
+    'Madhukhali':[23.374,89.748],'Bhanga':[23.492,89.954],'Nagarkanda':[23.540,89.800],
+    'Charbhadrasan':[23.363,89.957],'Sadarpur':[23.552,89.785],'Shaltha':[23.416,89.822]},
+  'Gopalganj':{
+    'Gopalganj Sadar':[23.005,89.827],'Kashiani':[23.149,89.883],'Kotalipara':[22.964,90.004],
+    'Muksudpur':[22.994,89.726],'Tungipara':[23.080,89.990]},
+  'Rajbari':{
+    'Rajbari Sadar':[23.757,89.641],'Baliakandi':[23.687,89.557],'Goalandaghat':[23.969,89.816],
+    'Kalukhali':[23.748,89.541],'Pangsha':[23.672,89.709]},
+  'Khulna':{
+    'Khulna Sadar':[22.846,89.540],'Batiaghata':[22.742,89.597],'Dacope':[22.565,89.465],
+    'Dumuria':[22.793,89.422],'Dighalia':[22.897,89.573],'Koyra':[22.332,89.295],
+    'Paikgachha':[22.601,89.320],'Phultala':[22.871,89.517],'Rupsha':[22.757,89.557],'Terokhada':[22.900,89.480]},
+  'Bagerhat':{
+    'Bagerhat Sadar':[22.660,89.785],'Chitalmari':[22.805,89.693],'Fakirhat':[22.791,89.606],
+    'Kachua':[22.869,89.834],'Mollahat':[22.927,89.773],'Mongla':[22.482,89.600],
+    'Morrelganj':[22.520,89.859],'Rampal':[22.700,89.611],'Sarankhola':[22.330,89.776],'Sundarbans E.':[21.970,89.620]},
+  'Satkhira':{
+    'Satkhira Sadar':[22.718,89.071],'Assasuni':[22.578,89.158],'Debhata':[22.660,89.000],
+    'Kalaroa':[22.819,89.046],'Kaliganj':[22.444,89.121],'Shyamnagar':[22.116,89.054],'Tala':[22.738,89.221]},
+  'Jessore':{
+    'Jessore Sadar':[23.167,89.217],'Abhaynagar':[23.011,89.318],'Bagherpara':[23.224,89.052],
+    'Chaugachha':[23.096,88.981],'Jhikargachha':[23.098,89.173],'Keshabpur':[22.989,89.212],
+    'Manirampur':[23.036,89.078],'Sharsha':[23.072,88.940]},
+  'Jhenaidah':{
+    'Jhenaidah Sadar':[23.545,89.154],'Harinakunda':[23.562,88.934],'Kaliganj':[23.303,89.119],
+    'Kotchandpur':[23.424,88.954],'Maheshpur':[23.619,88.870],'Shailkupa':[23.624,89.069]},
+  'Magura':{'Magura Sadar':[23.489,89.419],'Mohammadpur':[23.352,89.333],'Shalikha':[23.460,89.325],'Sreepur':[23.597,89.381],'Sreepur Sadar':[23.597,89.381]},
+  'Narail':{'Narail Sadar':[23.172,89.512],'Kalia':[23.058,89.662],'Lohagara':[23.190,89.611]},
+  'Kushtia':{'Kushtia Sadar':[23.901,89.120],'Bheramara':[24.028,89.033],'Daulatpur':[24.085,88.935],'Khoksa':[23.793,89.075],'Kumarkhali':[23.856,89.196],'Mirpur':[24.012,88.977]},
+  'Meherpur':{'Meherpur Sadar':[23.762,88.632],'Gangni':[23.844,88.547],'Mujibnagar':[23.787,88.678]},
+  'Chuadanga':{'Chuadanga Sadar':[23.640,88.842],'Alamdanga':[23.740,88.920],'Damurhuda':[23.538,88.836],'Jibannagar':[23.560,88.685]},
+  'Rajshahi':{'Rajshahi Sadar':[24.375,88.604],'Bagha':[24.321,88.453],'Bagmara':[24.463,88.658],'Charghat':[24.238,88.786],'Durgapur':[24.549,88.774],'Godagari':[24.554,88.384],'Mohanpur':[24.366,88.748],'Paba':[24.374,88.555],'Puthia':[24.294,88.715],'Tanore':[24.655,88.520]},
+  'Chapai Nawabganj':{'Chapai Nawabganj Sadar':[24.741,88.291],'Bholahat':[24.786,88.374],'Gomastapur':[24.811,88.161],'Nachole':[24.775,88.053],'Shibganj':[24.681,88.232]},
+  'Natore':{'Natore Sadar':[24.418,88.988],'Bagatipara':[24.410,89.039],'Baraigram':[24.349,89.075],'Gurudaspur':[24.499,89.086],'Lalpur':[24.270,88.928],'Singra':[24.506,88.861]},
+  'Naogaon':{'Naogaon Sadar':[24.813,88.940],'Atrai':[24.644,89.024],'Badalgachhi':[24.960,88.853],'Manda':[24.716,88.914],'Mahadebpur':[24.997,88.870],'Niamatpur':[24.957,88.678],'Patnitala':[25.118,88.873],'Porsha':[25.110,88.716],'Raninagar':[24.690,88.730],'Sapahar':[25.074,88.571],'Mohadevpur':[24.857,88.997]},
+  'Pabna':{'Pabna Sadar':[24.006,89.237],'Atgharia':[24.123,89.396],'Bera':[24.077,89.652],'Bhangura':[24.254,89.448],'Chatmohar':[24.181,89.315],'Faridpur':[24.056,89.090],'Ishwardi':[24.134,89.071],'Santhia':[24.105,89.514],'Sujanagar':[24.116,89.748]},
+  'Sirajganj':{'Sirajganj Sadar':[24.453,89.701],'Belkuchi':[24.360,89.597],'Chauhali':[24.302,89.803],'Kamarkhanda':[24.549,89.635],'Kazipur':[24.652,89.700],'Raiganj':[24.592,89.819],'Shahjadpur':[24.192,89.695],'Tarash':[24.279,89.517],'Ullahpara':[24.432,89.568]},
+  'Rangpur':{'Rangpur Sadar':[25.744,89.275],'Badarganj':[25.676,89.055],'Gangachhara':[25.835,89.148],'Kaunia':[25.673,89.448],'Mithapukur':[25.657,89.240],'Pirgachha':[25.845,89.384],'Pirganj':[25.850,89.378],'Taraganj':[25.781,89.182]},
+  'Dinajpur':{'Dinajpur Sadar':[25.628,88.634],'Birampur':[25.884,88.697],'Birganj':[25.813,88.709],'Bochaganj':[25.734,88.504],'Chirirbandar':[25.742,88.509],'Fulbari':[25.873,88.594],'Ghoraghat':[25.589,88.922],'Hakimpur':[25.777,88.590],'Kaharole':[25.636,88.748],'Khansama':[25.794,88.762],'Nawabganj':[25.108,88.384],'Parbatipur':[25.652,88.929]},
+  'Gaibandha':{'Gaibandha Sadar':[25.329,89.529],'Fulchhari':[25.202,89.752],'Gobindaganj':[25.116,89.374],'Palashbari':[25.201,89.405],'Sadullapur':[25.366,89.406],'Saghata':[25.219,89.700],'Sundarganj':[25.367,89.633]},
+  'Kurigram':{'Kurigram Sadar':[25.805,89.636],'Bhurungamari':[26.021,89.711],'Chilmari':[25.543,89.673],'Nageshwari':[25.975,89.697],'Phulbari':[25.742,89.824],'Rajarhat':[25.776,89.582],'Raumari':[25.783,89.804],'Ulipur':[25.657,89.700],'Char Rajibpur':[25.642,89.817]},
+  'Lalmonirhat':{'Lalmonirhat Sadar':[25.992,89.335],'Aditmari':[25.841,89.325],'Hatibandha':[26.063,89.213],'Kaliganj':[25.996,89.259],'Patgram':[26.132,89.055]},
+  'Nilphamari':{'Nilphamari Sadar':[25.932,88.856],'Dimla':[25.973,88.730],'Domar':[25.888,88.710],'Jaldhaka':[25.933,88.624],'Kishoreganj':[25.801,88.850],'Saidpur':[25.783,88.891]},
+  'Panchagarh':{'Panchagarh Sadar':[26.341,88.555],'Atwari':[26.186,88.526],'Boda':[26.124,88.640],'Debiganj':[26.268,88.657],'Tetulia':[26.635,88.476]},
+  'Thakurgaon':{'Thakurgaon Sadar':[26.034,88.458],'Baliadangi':[26.174,88.373],'Haripur':[25.888,88.418],'Pirganj':[25.850,88.379],'Ranisankail':[25.953,88.378]},
+  'Barisal':{'Barisal Sadar':[22.701,90.354],'Agailjhara':[22.981,90.204],'Babuganj':[22.676,90.318],'Bakerganj':[22.569,90.226],'Banaripara':[22.867,90.169],'Gaurnadi':[22.809,90.261],'Hizla':[22.584,90.519],'Mehendiganj':[22.518,90.492],'Muladi':[22.658,90.341],'Wazirpur':[22.852,90.132]},
+  'Bhola':{'Bhola Sadar':[22.686,90.648],'Burhanuddin':[22.523,90.706],'Char Fasson':[22.171,90.869],'Daulatkhan':[22.577,90.747],'Lalmohan':[22.366,90.761],'Manpura':[22.113,90.734],'Tazumuddin':[22.484,90.755]},
+  'Jhalokati':{'Jhalokati Sadar':[22.636,90.199],'Kathalia':[22.439,90.103],'Nalchity':[22.543,90.045],'Rajapur':[22.555,90.005]},
+  'Patuakhali':{'Patuakhali Sadar':[22.360,90.330],'Bauphal':[22.481,90.469],'Dashmina':[22.305,90.408],'Dumki':[22.550,90.317],'Galachipa':[22.166,90.402],'Kalapara':[22.014,90.243],'Mirzaganj':[22.448,90.239]},
+  'Pirojpur':{'Pirojpur Sadar':[22.579,89.975],'Bhandaria':[22.372,89.997],'Kaukhali':[22.613,89.964],'Mathbaria':[22.297,89.967],'Nazirpur':[22.477,89.946],'Nesarabad':[22.510,89.946]},
+  'Barguna':{'Barguna Sadar':[22.150,90.117],'Amtali':[22.124,90.249],'Bamna':[22.371,90.019],'Betagi':[22.266,90.047],'Patharghata':[21.894,90.030]},
+  'Sylhet':{'Sylhet Sadar':[24.895,91.869],'Balaganj':[24.697,91.974],'Beanibazar':[24.744,91.990],'Bishwanath':[24.868,91.659],'Companiganj':[25.108,91.659],'Fenchuganj':[24.706,91.873],'Golapganj':[24.807,92.006],'Gowainghat':[25.103,91.993],'Jaintiapur':[25.111,92.121],'Kanaighat':[25.064,92.261],'Osmani Nagar':[24.856,91.866],'South Surma':[24.839,91.888],'Zakiganj':[24.829,92.223]},
+  'Moulvibazar':{'Moulvibazar Sadar':[24.483,91.777],'Barlekha':[24.393,92.046],'Juri':[24.332,92.115],'Kamalganj':[24.397,91.910],'Kulaura':[24.541,92.035],'Rajnagar':[24.509,91.932],'Sreemangal':[24.308,91.724]},
+  'Habiganj':{'Habiganj Sadar':[24.375,91.416],'Ajmiriganj':[24.455,91.572],'Bahubal':[24.375,91.574],'Baniachong':[24.441,91.282],'Chunarughat':[24.219,91.644],'Lakhai':[24.476,91.490],'Madhabpur':[24.157,91.538],'Nabiganj':[24.418,91.572],'Shayestaganj':[24.335,91.424]},
+  'Sunamganj':{'Sunamganj Sadar':[25.065,91.395],'Bishwambarpur':[25.136,91.390],'Chhatak':[25.050,91.644],'Derai':[24.847,91.507],'Dharampasha':[24.902,91.012],'Dowarabazar':[25.084,91.170],'Jagannathpur':[24.852,91.480],'Jamalganj':[24.845,91.022],'Sulla':[24.879,91.191],'Tahirpur':[24.985,91.042],'Shalla':[24.872,91.219]},
+  'Mymensingh':{'Mymensingh Sadar':[24.747,90.420],'Bhaluka':[24.414,90.387],'Dhobaura':[24.997,90.460],'Fulbaria':[24.564,90.283],'Gaffargaon':[24.453,90.534],'Gauripur':[24.811,90.271],'Haluaghat':[24.997,90.460],'Ishwarganj':[24.501,90.631],'Muktagacha':[24.751,90.261],'Nandail':[24.460,90.734],'Phulpur':[24.881,90.601],'Trishal':[24.593,90.355],'Tarakanda':[24.788,90.592]},
+  'Jamalpur':{'Jamalpur Sadar':[24.905,89.938],'Bakshiganj':[25.107,89.920],'Dewanganj':[25.001,89.792],'Islampur':[24.776,89.877],'Madarganj':[24.946,89.841],'Melandaha':[24.876,89.821],'Sarishabari':[24.637,89.803]},
+  'Netrokona':{'Netrokona Sadar':[24.870,90.727],'Atpara':[24.882,90.895],'Barhatta':[24.975,90.846],'Durgapur':[25.083,90.671],'Kalmakanda':[25.016,90.485],'Kendua':[24.690,90.778],'Khaliajuri':[24.600,91.017],'Madan':[24.755,90.882],'Mohanganj':[24.812,91.011],'Purbadhala':[24.850,90.823]},
+  'Kishoreganj':{'Kishoreganj Sadar':[24.445,90.777],'Austagram':[24.281,91.015],'Bajitpur':[24.212,90.951],'Bhairab':[24.063,90.994],'Hossainpur':[24.376,90.680],'Itna':[24.362,91.166],'Karimganj':[24.570,90.961],'Katiadi':[24.383,90.824],'Kuliarchar':[24.199,90.857],'Mithamain':[24.301,91.088],'Nikli':[24.215,90.831],'Pakundia':[24.350,90.738],'Tarail':[24.440,90.633]},
+  'Tangail':{'Tangail Sadar':[24.251,89.917],'Basail':[24.265,89.825],'Bhuapur':[24.415,89.881],'Delduar':[24.122,89.973],'Ghatail':[24.415,90.004],'Gopalpur':[24.495,90.013],'Kalihati':[24.186,89.946],'Madhupur':[24.614,90.023],'Mirzapur':[24.068,90.038],'Nagarpur':[23.994,89.816],'Sakhipur':[24.334,90.138],'Dhanbari':[24.540,90.045]},
+};
+
+function ndviCol(v){
+  if(v>=0.70)return'#15803d';if(v>=0.60)return'#22c55e';
+  if(v>=0.50)return'#84cc16';if(v>=0.40)return'#eab308';
+  if(v>=0.30)return'#f97316';return'#ef4444';
+}
+
+let lMap=null, activeMarkers=[], uzMarkers=[], currentLayer='ndvi';
+
+function initMap(){
+  if(lMap)return;
+  lMap=L.map('leaflet-map',{
+    center:[23.5,90.3],zoom:7,
+    zoomControl:false,attributionControl:false
+  });
+
+  // Satellite imagery — ESRI World Imagery (reliable, no API key)
+  L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom:19,opacity:1}
+  ).addTo(lMap);
+
+  // Labels overlay — ESRI Reference (roads + cities)
+  L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom:19,opacity:0.8}
+  ).addTo(lMap);
+
+  // NDVI color fill overlay on top of satellite
+  buildNDVIOverlay();
+
+  L.control.zoom({position:'bottomright'}).addTo(lMap);
+  buildDivMarkers();
+
+  // Force map to render correctly
+  setTimeout(()=>{lMap.invalidateSize();lMap.setView([23.5,90.3],7);},200);
+  setTimeout(()=>lMap.invalidateSize(),800);
+}
+
+// ── NDVI COLOR FILL OVERLAY ──────────────────
+// Approximate bounding boxes for each division shown as
+// semi-transparent color fills representing NDVI health
+const DIV_BOUNDS = {
+  Chittagong: [[22.0,91.0],[23.7,92.7]],
+  Dhaka:      [[23.4,89.8],[24.6,91.0]],
+  Khulna:     [[21.8,88.8],[23.4,90.3]],
+  Rajshahi:   [[23.8,88.0],[25.2,89.8]],
+  Rangpur:    [[25.2,88.6],[26.6,89.9]],
+  Barisal:    [[21.8,89.8],[23.0,91.0]],
+  Sylhet:     [[23.7,91.0],[25.2,92.5]],
+  Mymensingh: [[24.2,89.8],[25.2,91.0]],
+};
+
+let ndviOverlayLayers=[];
+function buildNDVIOverlay(){
+  ndviOverlayLayers.forEach(l=>lMap.removeLayer(l));
+  ndviOverlayLayers=[];
+  Object.entries(DISTRICTS).forEach(([name,d])=>{
+    const b=DIV_BOUNDS[name];
+    if(!b)return;
+    const c=ndviCol(d.ndvi);
+    const rect=L.rectangle(b,{
+      color:c, weight:0,
+      fillColor:c, fillOpacity:0.28
+    });
+    rect.addTo(lMap);
+    ndviOverlayLayers.push(rect);
+  });
+}
+
+// ── DIVISION GROUPING ──────────────────────────
+// Group all districts by division for the map markers
+const DIVISIONS = {};
+Object.entries(DISTRICTS).forEach(([name,d])=>{
+  const div=d.division||name;
+  if(!DIVISIONS[div]){
+    DIVISIONS[div]={
+      color:d.color,coords:d.coords,
+      districts:[],
+      totalTrees:0,totalCO2:0,
+      ndvis:[],survivals:[],
+      progPrep:[],progPlant:[],progMonitor:[],progSustain:[]
+    };
+  }
+  DIVISIONS[div].districts.push(name);
+  DIVISIONS[div].totalCO2+=d.co2;
+  DIVISIONS[div].ndvis.push(d.ndvi);
+  DIVISIONS[div].survivals.push(d.survival);
+  // aggregate upazila progress
+  d.upazilas.forEach(uz=>{
+    DIVISIONS[div].progPrep.push(uz.progress.prep);
+    DIVISIONS[div].progPlant.push(uz.progress.plant);
+    DIVISIONS[div].progMonitor.push(uz.progress.monitor);
+    DIVISIONS[div].progSustain.push(uz.progress.sustain);
+  });
+});
+// compute averages
+const avg=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):0;
+Object.values(DIVISIONS).forEach(div=>{
+  div.avgNDVI=(div.ndvis.reduce((a,b)=>a+b,0)/div.ndvis.length).toFixed(2);
+  div.avgSurvival=avg(div.survivals);
+  div.avgPrep   =avg(div.progPrep);
+  div.avgPlant  =avg(div.progPlant);
+  div.avgMonitor=avg(div.progMonitor);
+  div.avgSustain=avg(div.progSustain);
+  div.districtCount=div.districts.length;
+});
+
+// ── LEVEL 1: DIVISION MARKERS ──────────────────
+function buildDivMarkers(){
+  activeMarkers.forEach(m=>lMap.removeLayer(m));
+  activeMarkers=[];
+  Object.entries(DIVISIONS).forEach(([divName,div])=>{
+    const c=ndviCol(parseFloat(div.avgNDVI));
+    // Outer pulse ring
+    const pulse=L.circleMarker(div.coords,{
+      radius:24,fillColor:c,color:c,
+      weight:1.5,opacity:.55,fillOpacity:.14
+    });
+    // Inner dot
+    const dot=L.circleMarker(div.coords,{
+      radius:7,fillColor:c,color:'#040d08',
+      weight:1.5,opacity:1,fillOpacity:1
+    });
+    // Label chip — shows division name + district count
+    const label=L.marker(div.coords,{
+      icon:L.divIcon({
+        className:'',
+        html:`<div style="font-family:'JetBrains Mono',monospace;font-size:0.42rem;color:${c};background:rgba(4,13,8,.9);border:1px solid ${c}55;padding:2px 7px;border-radius:4px;white-space:nowrap;margin-top:16px;margin-left:-24px;pointer-events:none;line-height:1.5">
+          <span style="font-weight:600">${divName}</span>
+          <br><span style="color:rgba(237,242,232,0.5)">${div.districtCount} districts · NDVI ${div.avgNDVI}</span>
+        </div>`,
+        iconAnchor:[0,0]
+      }),
+      interactive:false
+    });
+    pulse.on('mouseover',()=>pulse.setStyle({fillOpacity:.38,radius:27}));
+    pulse.on('mouseout', ()=>pulse.setStyle({fillOpacity:.14,radius:24}));
+    pulse.on('click',()=>openDivisionPopup(divName,div));
+    dot.on('click',  ()=>openDivisionPopup(divName,div));
+    pulse.addTo(lMap); dot.addTo(lMap); label.addTo(lMap);
+    activeMarkers.push(pulse,dot,label);
+  });
+}
+
+// ── DIVISION POPUP ────────────────────────────
+function openDivisionPopup(divName, div){
+  const c    = ndviCol(parseFloat(div.avgNDVI));
+  const co2_5yr = (div.totalCO2*5).toFixed(2);
+  const creditM = (div.totalCO2*5*30).toFixed(0);
+  const health  = div.avgNDVI>=0.65?'🟢 Healthy':div.avgNDVI>=0.50?'🟡 Moderate':div.avgNDVI>=0.35?'🟠 Stressed':'🔴 Critical';
+
+  // District rows — list all districts in this division
+  const distRows = div.districts.map(dName=>{
+    const d = DISTRICTS[dName];
+    if(!d) return '';
+    const dc = ndviCol(d.ndvi);
+    const uzCount = d.upazilas.length;
+    const avgProg = Math.round(d.upazilas.reduce((s,uz)=>{
+      const p=uz.progress; return s+(p.prep+p.plant+p.monitor+p.sustain)/4;
+    },0)/uzCount);
+    return `<tr style="cursor:pointer;border-bottom:1px solid rgba(82,196,106,0.07)"
+               onclick="openDistrictPopup('${dName}')"
+               onmouseover="this.style.background='rgba(82,196,106,0.06)'"
+               onmouseout="this.style.background='transparent'">
+      <td style="padding:5px 6px">
+        <div style="font-weight:600;font-size:0.66rem;color:#edf2e8">${dName}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.4rem;color:rgba(237,242,232,.35);margin-top:1px">${uzCount} upazilas · ${d.trees}</div>
+      </td>
+      <td style="padding:5px 6px;vertical-align:top;text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;font-weight:600;color:${dc}">${d.ndvi}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,.4)">${d.survival}%</div>
+      </td>
+      <td style="padding:5px 6px;vertical-align:top;min-width:52px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:#4fc3f7">${avgProg}%</div>
+        <div style="height:3px;background:rgba(255,255,255,.06);border-radius:1px;overflow:hidden;margin-top:2px">
+          <div style="height:100%;width:${avgProg}%;background:${dc};border-radius:1px"></div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const html=`
+  <div style="font-family:'Space Grotesk',sans-serif;width:290px">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;padding-bottom:8px;border-bottom:1px solid rgba(82,196,106,.15)">
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:1.1rem;font-weight:900;color:#a8f55e;line-height:1">${divName}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.4rem;color:rgba(237,242,232,.4);text-transform:uppercase;margin-top:3px">Bangladesh Division · ${div.districtCount} Districts</div>
+      </div>
+      <div style="background:${c}22;border:1px solid ${c}44;color:${c};font-family:'JetBrains Mono',monospace;font-size:0.44rem;padding:3px 8px;border-radius:4px;white-space:nowrap">${health}</div>
+    </div>
+    <!-- KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:9px">
+      <div style="background:rgba(255,255,255,.04);border-radius:5px;padding:6px 3px;text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700;color:#a8f55e">${div.districtCount}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.36rem;color:rgba(237,242,232,.4);margin-top:1px;text-transform:uppercase">Districts</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-radius:5px;padding:6px 3px;text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700;color:${c}">${div.avgNDVI}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.36rem;color:rgba(237,242,232,.4);margin-top:1px;text-transform:uppercase">NDVI</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-radius:5px;padding:6px 3px;text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700;color:#4fc3f7">${div.totalCO2.toFixed(1)}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.36rem;color:rgba(237,242,232,.4);margin-top:1px;text-transform:uppercase">CO₂ Mt</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-radius:5px;padding:6px 3px;text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700;color:#f5c842">${div.avgSurvival}%</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.36rem;color:rgba(237,242,232,.4);margin-top:1px;text-transform:uppercase">Survival</div>
+      </div>
+    </div>
+    <!-- Carbon -->
+    <div style="background:rgba(168,245,94,.05);border:1px solid rgba(168,245,94,.18);border-radius:6px;padding:7px;margin-bottom:9px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.4rem;color:#52c46a;text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px">⚗️ Carbon · IPCC Tier 2</div>
+      <div style="display:flex;justify-content:space-between;font-size:0.6rem;padding:2px 0;border-bottom:1px solid rgba(82,196,106,.08)">
+        <span style="color:rgba(237,242,232,.5)">Annual CO₂</span>
+        <span style="font-family:'JetBrains Mono',monospace;color:#a8f55e">${div.totalCO2.toFixed(2)} Mt/yr</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.6rem;padding:2px 0;border-bottom:1px solid rgba(82,196,106,.08)">
+        <span style="color:rgba(237,242,232,.5)">5-Year Total</span>
+        <span style="font-family:'JetBrains Mono',monospace;color:#4fc3f7">${co2_5yr} Mt</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.6rem;padding:2px 0">
+        <span style="color:rgba(237,242,232,.5)">Verra VCS @$30/t</span>
+        <span style="font-family:'JetBrains Mono',monospace;color:#f5c842">$${creditM}M</span>
+      </div>
+    </div>
+    <!-- Management Progress -->
+    <div style="background:rgba(168,245,94,.04);border:1px solid rgba(168,245,94,.15);border-radius:6px;padding:7px;margin-bottom:9px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.4rem;color:#52c46a;text-transform:uppercase;letter-spacing:.12em;margin-bottom:7px">📊 Management Progress</div>
+      ${[
+        ['Site Preparation', div.avgPrep,   '#52c46a'],
+        ['Planting Drive',   div.avgPlant,  '#22d3ee'],
+        ['Monitoring',       div.avgMonitor,'#f59e0b'],
+        ['Sustained Growth', div.avgSustain,'#a78bfa'],
+      ].map(([lbl,pct,col])=>`
+        <div style="margin-bottom:5px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+            <span style="font-size:0.58rem;color:rgba(237,242,232,.55)">${lbl}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.52rem;color:#edf2e8">${pct}%</span>
+          </div>
+          <div style="height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${col};border-radius:2px"></div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <!-- Districts table -->
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.4rem;color:#52c46a;text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px">🏙 ${div.districtCount} Districts — tap for details</div>
+    <div style="max-height:180px;overflow-y:auto;border:1px solid rgba(82,196,106,.12);border-radius:6px">
+      <table style="width:100%;border-collapse:collapse">
+        <thead style="position:sticky;top:0;background:rgba(7,18,9,.98)">
+          <tr>
+            <th style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,.35);text-transform:uppercase;padding:4px 6px;text-align:left;border-bottom:1px solid rgba(82,196,106,.12)">District</th>
+            <th style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,.35);text-transform:uppercase;padding:4px 6px;text-align:center;border-bottom:1px solid rgba(82,196,106,.12)">NDVI</th>
+            <th style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,.35);text-transform:uppercase;padding:4px 6px;text-align:left;border-bottom:1px solid rgba(82,196,106,.12)">Progress</th>
+          </tr>
+        </thead>
+        <tbody>${distRows}</tbody>
+      </table>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,.3);margin-top:4px;text-align:center">↕ scroll · tap district for upazilas</div>
+  </div>`;
+
+  lMap.closePopup();
+  lMap.flyTo(div.coords, 8, {duration:0.8});
+  L.popup({maxWidth:295,className:'bt-popup'})
+    .setLatLng(div.coords)
+    .setContent(html)
+    .openOn(lMap);
+}
+
+// Open district → show its upazilas
+function openDistrictPopup(distName){
+  const d = DISTRICTS[distName];
+  if(!d) return;
+  const c = ndviCol(d.ndvi);
+  const uzCoords = UZ_COORDS[distName]||{};
+  const avgProg = uz=>{const p=uz.progress;return Math.round((p.prep+p.plant+p.monitor+p.sustain)/4);};
+
+  const uzRows = d.upazilas.map(uz=>{
+    const uc  = ndviCol(uz.ndvi);
+    const crd = uzCoords[uz.name];
+    const avg = avgProg(uz);
+    return `<tr style="cursor:pointer;border-bottom:1px solid rgba(82,196,106,0.07)"
+               onclick="openUzPopup('${uz.name}','${distName}')"
+               onmouseover="this.style.background='rgba(82,196,106,0.06)'"
+               onmouseout="this.style.background='transparent'">
+      <td style="padding:5px 6px">
+        <div style="font-weight:600;font-size:0.66rem;color:#edf2e8">${uz.name}</div>
+        ${crd?`<div style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,.3);margin-top:1px">📍 ${crd[0].toFixed(3)}, ${crd[1].toFixed(3)}</div>`:''}
+      </td>
+      <td style="padding:5px 6px;text-align:center;vertical-align:top">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;font-weight:600;color:${uc}">${uz.ndvi}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,.35)">${uz.trees}</div>
+      </td>
+      <td style="padding:5px 6px;vertical-align:top;min-width:50px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.56rem;color:#4fc3f7">${avg}%</div>
+        <div style="height:3px;background:rgba(255,255,255,.06);border-radius:1px;overflow:hidden;margin-top:2px">
+          <div style="height:100%;width:${avg}%;background:${uc};border-radius:1px"></div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const html=`
+  <div style="font-family:'Space Grotesk',sans-serif;width:280px">
+    <div style="margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid rgba(82,196,106,.15)">
+      <div style="font-family:'Fraunces',serif;font-size:1rem;font-weight:900;color:#a8f55e">${distName}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.4rem;color:rgba(237,242,232,.4);text-transform:uppercase;margin-top:3px">${d.division} Division · ${d.upazilas.length} Upazilas</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:9px">
+      <div style="background:rgba(255,255,255,.04);border-radius:5px;padding:6px 3px;text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;font-weight:700;color:${c}">${d.ndvi}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.34rem;color:rgba(237,242,232,.4);text-transform:uppercase">NDVI</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-radius:5px;padding:6px 3px;text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;font-weight:700;color:#a8f55e">${d.trees}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.34rem;color:rgba(237,242,232,.4);text-transform:uppercase">Trees</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-radius:5px;padding:6px 3px;text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;font-weight:700;color:#4fc3f7">${d.co2}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.34rem;color:rgba(237,242,232,.4);text-transform:uppercase">CO₂ Mt</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-radius:5px;padding:6px 3px;text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;font-weight:700;color:#f5c842">${d.survival}%</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.34rem;color:rgba(237,242,232,.4);text-transform:uppercase">Survival</div>
+      </div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.4rem;color:#52c46a;text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px">🏘 ${d.upazilas.length} Upazilas — tap for progress</div>
+    <div style="max-height:200px;overflow-y:auto;border:1px solid rgba(82,196,106,.12);border-radius:6px">
+      <table style="width:100%;border-collapse:collapse">
+        <thead style="position:sticky;top:0;background:rgba(7,18,9,.98)">
+          <tr>
+            <th style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,.35);text-transform:uppercase;padding:4px 6px;text-align:left;border-bottom:1px solid rgba(82,196,106,.12)">Upazila</th>
+            <th style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,.35);text-transform:uppercase;padding:4px 6px;text-align:center;border-bottom:1px solid rgba(82,196,106,.12)">NDVI</th>
+            <th style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,.35);text-transform:uppercase;padding:4px 6px;text-align:left;border-bottom:1px solid rgba(82,196,106,.12)">Progress</th>
+          </tr>
+        </thead>
+        <tbody>${uzRows}</tbody>
+      </table>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,.3);margin-top:4px;text-align:center">↕ scroll · tap upazila for full details</div>
+  </div>`;
+
+  lMap.closePopup();
+  showUzMarkersForDistrict(distName, d);
+  L.popup({maxWidth:285,className:'bt-popup'})
+    .setLatLng(d.coords)
+    .setContent(html)
+    .openOn(lMap);
+}
+
+// ── SHOW UPAZILA MINI-MARKERS ON MAP ──────────
+function showUzMarkers(divName,d){
+  uzMarkers.forEach(m=>lMap.removeLayer(m));
+  uzMarkers=[];
+  const uzCoords=UZ_COORDS[divName]||{};
+  d.upazilas.forEach(uz=>{
+    const crd=uzCoords[uz.name];
+    if(!crd)return;
+    const c=ndviCol(uz.ndvi);
+    const dot=L.circleMarker(crd,{radius:5,fillColor:c,color:'#040d08',weight:1,opacity:1,fillOpacity:0.9});
+    const ring=L.circleMarker(crd,{radius:12,fillColor:c,color:c,weight:1,opacity:.5,fillOpacity:.12});
+    dot.on('click', ()=>openUzPopup(uz.name,divName));
+    ring.on('click',()=>openUzPopup(uz.name,divName));
+    ring.on('mouseover',()=>ring.setStyle({fillOpacity:.3}));
+    ring.on('mouseout', ()=>ring.setStyle({fillOpacity:.12}));
+    dot.bindTooltip(`${uz.name} · NDVI ${uz.ndvi}`,{direction:'top',className:'bt-tt'});
+    ring.addTo(lMap); dot.addTo(lMap);
+    uzMarkers.push(ring,dot);
+  });
+}
+
+function showUzMarkersForDistrict(distName, d){
+  uzMarkers.forEach(m=>lMap.removeLayer(m));
+  uzMarkers=[];
+  const uzCoords=UZ_COORDS[distName]||{};
+  d.upazilas.forEach(uz=>{
+    const crd=uzCoords[uz.name];
+    if(!crd)return;
+    const c=ndviCol(uz.ndvi);
+    const dot=L.circleMarker(crd,{radius:5,fillColor:c,color:'#040d08',weight:1,opacity:1,fillOpacity:0.9});
+    const ring=L.circleMarker(crd,{radius:11,fillColor:c,color:c,weight:1,opacity:.5,fillOpacity:.14});
+    dot.on('click', ()=>openUzPopup(uz.name,distName));
+    ring.on('click',()=>openUzPopup(uz.name,distName));
+    ring.on('mouseover',()=>ring.setStyle({fillOpacity:.32}));
+    ring.on('mouseout', ()=>ring.setStyle({fillOpacity:.14}));
+    dot.bindTooltip(`${uz.name} · NDVI ${uz.ndvi}`,{direction:'top',className:'bt-tt'});
+    ring.addTo(lMap); dot.addTo(lMap);
+    uzMarkers.push(ring,dot);
+  });
+}
+
+// ── UPAZILA DETAIL POPUP ───────────────────
+function openUzPopup(uzName,divName){
+  const d  = DISTRICTS[divName];
+  const uz = d.upazilas.find(u=>u.name===uzName);
+  if(!uz)return;
+  const c  = ndviCol(uz.ndvi);
+  const p  = uz.progress;
+  const avg= Math.round((p.prep+p.plant+p.monitor+p.sustain)/4);
+  const crd= (UZ_COORDS[divName]||{})[uzName];
+  const health=uz.ndvi>=0.65?'🟢 Healthy':uz.ndvi>=0.50?'🟡 Moderate':uz.ndvi>=0.35?'🟠 Stressed':'🔴 Critical';
+  const co2est=(parseFloat(uz.trees)*1e6*0.485*0.725*0.5*3.6663/1000/1e6).toFixed(4);
+
+  function bar(lbl,pct,col){
+    return`<div style="margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+        <span style="font-size:0.62rem;color:rgba(237,242,232,0.5)">${lbl}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:#edf2e8">${pct}%</span>
+      </div>
+      <div style="height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${col};border-radius:2px"></div>
+      </div>
+    </div>`;
+  }
+
+  const html=`
+  <div style="font-family:'Space Grotesk',sans-serif;width:260px">
+    <div style="margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid rgba(82,196,106,.15)">
+      <div style="font-family:'Fraunces',serif;font-size:1.05rem;font-weight:900;color:#a8f55e;line-height:1">${uzName}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.42rem;color:rgba(237,242,232,0.4);text-transform:uppercase;margin-top:3px">${divName} Division · Upazila</div>
+      ${crd?`<div style="font-family:'JetBrains Mono',monospace;font-size:0.42rem;color:rgba(237,242,232,0.3);margin-top:2px">📍 ${crd[0].toFixed(4)}°N, ${crd[1].toFixed(4)}°E</div>`:''}
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:10px">
+      <div style="background:rgba(255,255,255,.04);border-radius:5px;padding:7px 4px;text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700;color:${c}">${uz.ndvi}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,0.4);margin-top:1px">NDVI</div>
+        <div style="font-size:0.5rem;margin-top:2px">${health.split(' ')[0]}</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-radius:5px;padding:7px 4px;text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700;color:#a8f55e">${uz.trees}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,0.4);margin-top:1px">Trees</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-radius:5px;padding:7px 4px;text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700;color:#4fc3f7">${avg}%</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.38rem;color:rgba(237,242,232,0.4);margin-top:1px">Progress</div>
+      </div>
+    </div>
+
+    <div style="background:rgba(168,245,94,.05);border:1px solid rgba(168,245,94,.18);border-radius:6px;padding:7px;margin-bottom:9px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.42rem;color:#52c46a;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">⚗️ Carbon · IPCC Tier 2</div>
+      <div style="display:flex;justify-content:space-between;font-size:0.62rem;padding:2px 0">
+        <span style="color:rgba(237,242,232,0.5)">Est. CO₂/yr</span>
+        <span style="font-family:'JetBrains Mono',monospace;color:#a8f55e">${co2est} Mt</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.62rem;padding:2px 0">
+        <span style="color:rgba(237,242,232,0.5)">Health Status</span>
+        <span style="font-size:0.62rem">${health}</span>
+      </div>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.42rem;color:#52c46a;text-transform:uppercase;letter-spacing:.12em;margin-bottom:7px">📊 Management Progress</div>
+    ${bar('Site Preparation',p.prep,'#52c46a')}
+    ${bar('Planting Drive',  p.plant,'#22d3ee')}
+    ${bar('Monitoring',      p.monitor,'#f59e0b')}
+    ${bar('Sustained Growth',p.sustain,'#a78bfa')}
+
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:7px">
+      ${[
+        [p.prep>=100,  '✓ Prep',    'rgba(82,196,106,0.12)','#52c46a','rgba(82,196,106,0.25)'],
+        [p.plant>=80,  '▶ Planting','rgba(34,211,238,0.1)', '#22d3ee','rgba(34,211,238,0.25)'],
+        [p.monitor>=60,'▶ Monitor', 'rgba(245,158,11,0.1)', '#f59e0b','rgba(245,158,11,0.25)'],
+        [p.sustain>=40,'▶ Sustain', 'rgba(167,139,250,0.1)','#a78bfa','rgba(167,139,250,0.25)'],
+      ].map(([on,lbl,bg,col,bdr])=>
+        `<span style="background:${on?bg:'rgba(255,255,255,.04)'};color:${on?col:'rgba(237,242,232,0.35)'};border:1px solid ${on?bdr:'rgba(82,196,106,0.1)'};font-family:'JetBrains Mono',monospace;font-size:0.42rem;padding:3px 8px;border-radius:3px">${lbl}</span>`
+      ).join('')}
+    </div>
+  </div>`;
+
+  lMap.closePopup();
+  const pos = crd || d.coords;
+  L.popup({maxWidth:270,className:'bt-popup'})
+    .setLatLng(pos)
+    .setContent(html)
+    .openOn(lMap);
+}
+
+function buildDivisionList(){
+  const el=document.getElementById('divisionList');
+  if(!el)return;
+  el.innerHTML='';
+  Object.entries(DISTRICTS).forEach(([name,d])=>{
+    const c=ndviCol(d.ndvi);
+    el.innerHTML+=`<div class="div-row" onclick="openDivPopup('${name}',DISTRICTS['${name}'])">
+      <div class="dr-color" style="background:${d.color}"></div>
+      <div class="dr-info">
+        <div class="dr-name">${name} <span style="font-family:var(--mono);font-size:0.48rem;color:var(--muted);font-weight:400">${d.upazilas.length} upazilas</span></div>
+        <div class="dr-meta">NDVI: ${d.ndvi} · Survival: ${d.survival}% · CO₂: ${d.co2} Mt/yr</div>
+        <div class="dr-bar"><div class="dr-bar-fill" style="width:${Math.round(d.ndvi*100)}%;background:${c}"></div></div>
+      </div>
+      <div class="dr-trees">${d.trees}</div>
+    </div>`;
+  });
+}
+
+function setMapLayer(id,el){
+  ['ndvi','carbon','risk','mgmt','pure'].forEach(k=>{
+    const b=document.getElementById('ml-'+k);
+    if(b){b.style.borderColor='rgba(82,196,106,.3)';b.style.color='rgba(237,242,232,.6)';}
+  });
+  const ab=document.getElementById('ml-'+id);
+  if(ab){ab.style.borderColor='#a8f55e';ab.style.color='#a8f55e';}
+
+  currentLayer=id;
+  const lbl={
+    ndvi:'🌿 NDVI · Vegetation Health',
+    carbon:'💨 Carbon · CO₂ Sequestration',
+    risk:'⚠️ Risk · Drought & Survival',
+    mgmt:'📊 Management Progress',
+    pure:'🛰 Pure Satellite'
+  };
+  const ml=document.getElementById('mapLayerLabel');
+  if(ml)ml.textContent=lbl[id]||'';
+
+  // Update legend
+  const leg=document.getElementById('ndviLegendOverlay');
+  const legTitle=document.getElementById('legendTitle');
+  const legBar=document.getElementById('legendBar');
+  const legLabels=document.getElementById('legendLabels');
+  if(leg){
+    if(id==='pure'){
+      leg.style.display='none';
+    } else {
+      leg.style.display='block';
+      if(id==='ndvi'){
+        legTitle.textContent='NDVI Health';
+        legBar.style.background='linear-gradient(90deg,#ef4444,#f97316,#eab308,#22c55e,#15803d)';
+        legLabels.innerHTML='<span>Critical</span><span>Good</span><span>Best</span>';
+      } else if(id==='carbon'){
+        legTitle.textContent='CO₂ Sequestration';
+        legBar.style.background='linear-gradient(90deg,#ef4444,#eab308,#22c55e,#15803d)';
+        legLabels.innerHTML='<span>Low</span><span>Mid</span><span>High</span>';
+      } else if(id==='risk'){
+        legTitle.textContent='Drought Risk';
+        legBar.style.background='linear-gradient(90deg,#15803d,#22c55e,#eab308,#f97316,#ef4444)';
+        legLabels.innerHTML='<span>Safe</span><span>Med</span><span>High</span>';
+      } else if(id==='mgmt'){
+        legTitle.textContent='Mgmt Progress';
+        legBar.style.background='linear-gradient(90deg,#ef4444,#f97316,#eab308,#22c55e,#15803d)';
+        legLabels.innerHTML='<span>0%</span><span>50%</span><span>100%</span>';
+      }
+    }
+  }
+
+  if(!lMap)return;
+  ndviOverlayLayers.forEach((rect,i)=>{
+    const name=Object.keys(DIV_BOUNDS)[i];
+    const d=DISTRICTS[name]; if(!d)return;
+    if(id==='pure'){
+      rect.setStyle({fillOpacity:0,weight:0});
+    } else if(id==='ndvi'){
+      rect.setStyle({fillColor:ndviCol(d.ndvi),fillOpacity:0.28,weight:0});
+    } else if(id==='carbon'){
+      const v=d.co2/1.8;
+      const c=v>=0.9?'#15803d':v>=0.7?'#22c55e':v>=0.5?'#eab308':v>=0.3?'#f97316':'#ef4444';
+      rect.setStyle({fillColor:c,fillOpacity:0.28,weight:0});
+    } else if(id==='risk'){
+      const c=d.survival>=80?'#15803d':d.survival>=75?'#22c55e':d.survival>=70?'#eab308':d.survival>=65?'#f97316':'#ef4444';
+      rect.setStyle({fillColor:c,fillOpacity:0.28,weight:0});
+    } else if(id==='mgmt'){
+      // Color by avg management progress across upazilas
+      const progs=d.upazilas.map(uz=>(uz.progress.prep+uz.progress.plant+uz.progress.monitor+uz.progress.sustain)/4);
+      const avgP=progs.reduce((a,b)=>a+b,0)/progs.length;
+      const c=avgP>=80?'#15803d':avgP>=60?'#22c55e':avgP>=40?'#eab308':avgP>=20?'#f97316':'#ef4444';
+      rect.setStyle({fillColor:c,fillOpacity:0.32,weight:0});
+    }
+  });
+}
+
+// ── NDVI RANKING ──────────────────────────
+function renderNDVI(){
+  const el=document.getElementById('ndviRankList');
+  if(!el)return;
+  const all=[];
+  Object.entries(DISTRICTS).forEach(([dist,d])=>{
+    all.push({name:dist,sub:'Division',ndvi:d.ndvi,trees:d.trees,div:true});
+    d.upazilas.forEach(uz=>all.push({name:uz.name,sub:dist,ndvi:uz.ndvi,trees:uz.trees,div:false}));
+  });
+  all.sort((a,b)=>b.ndvi-a.ndvi);
+
+  function hInfo(v){
+    if(v>=0.70)return{lbl:'Excellent',cls:'h-ex'};
+    if(v>=0.60)return{lbl:'Good',cls:'h-gd'};
+    if(v>=0.50)return{lbl:'Moderate',cls:'h-mod'};
+    if(v>=0.35)return{lbl:'Stressed',cls:'h-str'};
+    return{lbl:'Critical ⚠',cls:'h-crit'};
+  }
+  function tInfo(v){
+    if(v>=0.65)return{s:'▲+3.1%',c:'t-up'};
+    if(v>=0.50)return{s:'▲+1.2%',c:'t-up'};
+    if(v>=0.40)return{s:'→ 0%',c:'t-flat'};
+    return{s:'▼-2.4%',c:'t-dn'};
+  }
+
+  el.innerHTML=all.map((item,i)=>{
+    const h=hInfo(item.ndvi),t=tInfo(item.ndvi),col=ndviCol(item.ndvi);
+    const nCls=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    return`<div class="rank-item" style="${item.div?'border-color:rgba(168,245,94,.2);background:rgba(168,245,94,.03)':''}">
+      <div class="rank-num ${nCls}">${i+1}</div>
+      <div class="rank-info">
+        <div class="rank-name">${item.name}${item.div?' <span style="font-family:var(--mono);font-size:0.42rem;color:var(--lime);margin-left:3px">DIV</span>':''}</div>
+        <div class="rank-div">${item.sub} · ${item.trees}</div>
+        <div class="rank-bar-wrap">
+          <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${Math.round(item.ndvi*100)}%;background:${col}"></div></div>
+          <span class="rank-ndvi" style="color:${col}">${item.ndvi}</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <span class="rank-health ${h.cls}">${h.lbl}</span>
+        <span class="rank-trend ${t.c}">${t.s}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── CARBON ENGINE — IPCC TIER 2 ───────────
+class CarbonEngine {
+  static calc(nTrees,biomassKg,years){
+    const perTree=biomassKg*0.725*0.5*3.6663/1000;
+    const annual=perTree*nTrees;
+    const total=annual*years;
+    return{perTree,annual,total,credits:total*30,mt:total/1e6};
+  }
+}
+
+function onSpeciesChange(){
+  const sp=SPECIES_DB.find(s=>s.key===document.getElementById('calcSpecies').value);
+  if(sp)document.getElementById('calcBiomass').value=sp.biomass;
+}
+
+function runCarbonCalc(){
+  const n=parseInt(document.getElementById('calcTrees').value)||0;
+  const b=parseFloat(document.getElementById('calcBiomass').value)||0;
+  const y=parseInt(document.getElementById('calcYears').value)||1;
+  const key=document.getElementById('calcSpecies').value;
+  const sp=SPECIES_DB.find(s=>s.key===key);
+  const r=CarbonEngine.calc(n,b,y);
+  document.getElementById('resultCO2').textContent=Math.round(r.total).toLocaleString();
+  document.getElementById('resultCredits').textContent='$'+(r.credits/1e6).toFixed(2)+'M';
+  document.getElementById('rCO2Tree').textContent=r.perTree.toFixed(4)+'t';
+  document.getElementById('rAnnual').textContent=Math.round(r.annual).toLocaleString();
+  document.getElementById('rMt').textContent=r.mt.toFixed(4)+' Mt';
+  document.getElementById('resultNote').textContent=`${(n/1e6).toFixed(1)}M ${sp?.name||''} · ${y}yr · IPCC Tier 2 · $30/t Verra VCS`;
+  document.getElementById('calcResult').classList.add('show');
+}
+
+function renderCarbon(){
+  const sb=document.getElementById('speciesTbody');
+  const ab=document.getElementById('accTbody');
+  if(!sb||!ab)return;
+  if(sb.innerHTML)return;
+  const mx=Math.max(...SPECIES_DB.map(s=>s.co2Rate));
+  sb.innerHTML=SPECIES_DB.map(s=>`
+    <tr>
+      <td><div class="sp-name">${s.name}</div><div class="sp-sci">${s.sci}</div></td>
+      <td style="color:var(--muted)">${s.type}</td>
+      <td><div class="sp-bar"><div class="sp-bar-fill" style="width:${Math.round(s.co2Rate/mx*70)}px"></div>
+        <span style="font-family:var(--mono);font-size:0.54rem;color:var(--acid)">${s.co2Rate}kg</span></div></td>
+      <td><div style="height:3px;width:${Math.round(s.biomass/700*44)}px;background:linear-gradient(90deg,#0e7490,#22d3ee);border-radius:2px"></div></td>
+    </tr>`).join('');
+
+  const divs=[
+    {n:'Chittagong',t:'38.2M',co2:1.8},{n:'Khulna',t:'32.1M',co2:1.2},
+    {n:'Dhaka',t:'28.4M',co2:1.2},{n:'Rajshahi',t:'22.8M',co2:0.95},
+    {n:'Rangpur',t:'21.4M',co2:0.95},{n:'Barisal',t:'19.8M',co2:0.95},
+    {n:'Sylhet',t:'18.6M',co2:0.65},{n:'Mymensingh',t:'16.2M',co2:0.65},
+  ];
+  ab.innerHTML=divs.map(d=>`
+    <tr>
+      <td style="color:var(--white);font-weight:600">${d.n}</td>
+      <td style="color:var(--acid)">${d.t}</td>
+      <td style="color:var(--lime)">${d.co2}</td>
+      <td style="color:var(--blue)">${(d.co2*5).toFixed(2)}</td>
+      <td style="color:var(--gold)">$${(d.co2*5*30).toFixed(0)}M</td>
+    </tr>`).join('');
+}
+
+// ── AI CHAT ────────────────────────────────
+const AI={
+  survival:`Division survival:\n• Chittagong 82% ✅\n• Khulna 79%\n• Mymensingh 76%\n• Barisal 74%\n• Dhaka 72%\n• Rangpur 70%\n• Rajshahi 65% ⚠️\n\nNational avg: 76%`,
+  carbon:`Carbon status:\n• $52M total (Verra VCS + Gold Standard)\n• Y5 target: $52M ✅\n• 30-yr projection @$50/t: $3.75B\n• CO₂: 12.8 Mt (94.8% of target)`,
+  alerts:`Active alerts:\n⚠️ Rajshahi Barind: NDVI -5%, drought\n⚠️ Rangpur Node-09: Offline 48hrs\n⚠️ Rajshahi Sensor: 15% battery\n✅ Chittagong CHT: +3% NDVI recovery`,
+  ndvi:`NDVI (Sentinel-2 March 2026):\n🟢 Sundarbans West: 0.81 Excellent\n🟢 Bandarban: 0.78 Excellent\n🟡 Dhaka urban: 0.44 Stressed\n🔴 Rajshahi Barind: 0.32 Critical\n\nNational avg: 0.57`,
+  sundarban:`Sundarbans:\n• Heritiera fomes (Sundari)\n• 5.8M trees planted\n• NDVI: 0.81 Excellent\n• CO₂: 3x terrestrial trees\n• UNESCO protection active\n• 88% IoT monitoring`,
+  default:`I can answer about:\n- Division survival rates\n- NDVI vegetation health\n- Carbon credit revenue\n- IoT sensor alerts\n- Species performance\n- NDC 3.0 progress`
+};
+function aiReply(q){
+  const l=q.toLowerCase();
+  if(l.includes('surviv')||l.includes('division'))return AI.survival;
+  if(l.includes('carbon')||l.includes('credit'))return AI.carbon;
+  if(l.includes('alert')||l.includes('warn'))return AI.alerts;
+  if(l.includes('ndvi')||l.includes('veget'))return AI.ndvi;
+  if(l.includes('sundar')||l.includes('mangr'))return AI.sundarban;
+  return AI.default;
+}
+function quickAsk(q){document.getElementById('chatInput').value=q;sendChat();}
+function sendChat(){
+  const inp=document.getElementById('chatInput');
+  const q=inp.value.trim();if(!q)return;
+  const msgs=document.getElementById('chatMsgs');
+  msgs.innerHTML+=`<div class="msg-user">${q}</div>`;
+  msgs.innerHTML+=`<div class="msg-ai typing-wrap"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  inp.value='';msgs.scrollTop=msgs.scrollHeight;
+  setTimeout(()=>{
+    document.querySelector('.typing-wrap')?.remove();
+    msgs.innerHTML+=`<div class="msg-ai"><div class="msg-ai-label">🌿 BanglaTrees AI</div>${aiReply(q).replace(/\n/g,'<br>')}</div>`;
+    msgs.scrollTop=msgs.scrollHeight;
+  },900);
+}
+</script>
+</body>
+</html>
